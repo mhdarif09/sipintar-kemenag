@@ -7,10 +7,31 @@ $db_user = "root";
 $db_pass = "";           
 $db_name = "db_sarpras"; 
 
-$conn = new mysqli($db_host, $db_user, $db_pass, $db_name);
-
+$conn = @new mysqli($db_host, $db_user, $db_pass, $db_name);
+if ($conn->connect_error) {
+    $conn = new mysqli($db_host, $db_user, $db_pass, "db_sapras");
+}
 if ($conn->connect_error) {
     die("Koneksi Database Gagal: " . $conn->connect_error);
+}
+
+$conn->query("CREATE TABLE IF NOT EXISTS inventory_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    item_code VARCHAR(50) NOT NULL UNIQUE,
+    item_name VARCHAR(150) NOT NULL,
+    category VARCHAR(100) NOT NULL DEFAULT 'Multimedia',
+    item_condition ENUM('Baik', 'Rusak Sedang', 'Rusak Berat') NOT NULL DEFAULT 'Baik',
+    quantity INT NOT NULL DEFAULT 1,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+)");
+foreach ([
+    'inventory_id' => "ALTER TABLE borrowings ADD COLUMN inventory_id INT NULL",
+    'stock_deducted' => "ALTER TABLE borrowings ADD COLUMN stock_deducted TINYINT(1) NOT NULL DEFAULT 0",
+    'return_condition' => "ALTER TABLE borrowings ADD COLUMN return_condition ENUM('Baik', 'Rusak Ringan', 'Rusak Berat') NULL",
+] as $column => $alter_sql) {
+    $check = $conn->query("SHOW COLUMNS FROM borrowings LIKE '$column'");
+    if ($check && $check->num_rows === 0) $conn->query($alter_sql);
 }
 
 $success_code = '';
@@ -27,26 +48,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST
     $type = $_POST['borrowerType'];
     $id_num = $conn->real_escape_string($_POST['borrowerIdNum'] ?: '-');
     
-    // Utamakan nama barang kustom jika diisi, jika kosong gunakan preset
-    $item_custom = trim($_POST['itemNameCustom']);
-    $item_preset = $_POST['presetItemSelect'];
-    $item = $conn->real_escape_string(!empty($item_custom) ? $item_custom : $item_preset);
-
+    $inventory_id = intval($_POST['inventory_id'] ?? 0);
     $qty = intval($_POST['itemQty']);
     $purpose = $conn->real_escape_string($_POST['borrowPurpose']);
     $expected = $_POST['expectedReturnDate'];
     $condition = 'Baik';
 
-    if (empty($item)) {
-        $error_msg = "Harap pilih atau tulis nama barang yang ingin dipinjam!";
+    $asset = $inventory_id ? $conn->query("SELECT item_name, quantity FROM inventory_items WHERE id=$inventory_id") : false;
+    if (!$asset || !$asset->num_rows) {
+        $error_msg = "Pilih barang tersedia dari master inventaris.";
     } else {
-        $sql = "INSERT INTO borrowings (id, date, time, name, type, id_num, item, qty, purpose, expected_return, `condition`, returned) 
-                VALUES ('$id', '$date', '$time', '$name', '$type', '$id_num', '$item', $qty, '$purpose', '$expected', '$condition', 0)";
-        
-        if ($conn->query($sql)) {
-            $success_code = $id;
-        } else {
-            $error_msg = "Gagal menyimpan data: " . $conn->error;
+        $asset = $asset->fetch_assoc();
+        $item = $conn->real_escape_string($asset['item_name']);
+        if ($qty < 1 || $qty > (int)$asset['quantity']) $error_msg = "Jumlah melebihi stok tersedia (" . (int)$asset['quantity'] . ").";
+        else {
+            $conn->begin_transaction();
+            $sql = "INSERT INTO borrowings (id, date, time, name, type, id_num, item, qty, purpose, expected_return, `condition`, returned, inventory_id, stock_deducted) VALUES ('$id', '$date', '$time', '$name', '$type', '$id_num', '$item', $qty, '$purpose', '$expected', '$condition', 0, $inventory_id, 1)";
+            if ($conn->query($sql) && $conn->query("UPDATE inventory_items SET quantity=quantity-$qty WHERE id=$inventory_id AND quantity >= $qty") && $conn->affected_rows === 1) { $conn->commit(); $success_code = $id; }
+            else { $conn->rollback(); $error_msg = "Gagal menyimpan peminjaman; stok mungkin sudah berubah."; }
         }
     }
 }
@@ -149,20 +168,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST
                     </div>
 
                     <div class="border-t pt-3">
-                        <label class="block font-semibold text-slate-700 mb-1">Pilih / Tulis Barang *</label>
+                        <label class="block font-semibold text-slate-700 mb-1">Pilih Barang dari Master Inventaris *</label>
                         <div class="grid grid-cols-3 gap-2 mb-2">
-                            <select id="presetItemSelect" name="presetItemSelect" onchange="autoFillItem()" class="col-span-2 p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-600 outline-none">
-                                <option value="">-- Pilih Preset --</option>
-                                <option value="Proyektor">Proyektor</option>
-                                <option value="Kabel HDMI">Kabel HDMI</option>
-                                <option value="Proyektor + HDMI">Proyektor + HDMI</option>
-                                <option value="Sound Portabel">Sound Portabel</option>
-                                <option value="Microphone Wireless">Microphone Wireless</option>
-                                <option value="Terminal Listrik / Roll">Terminal Listrik / Roll</option>
+                            <select id="presetItemSelect" name="inventory_id" required onchange="autoFillItem()" class="col-span-2 p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-600 outline-none">
+                                <option value="">-- Pilih barang tersedia --</option>
+                                <?php $available_items = $conn->query("SELECT id, item_name, quantity FROM inventory_items WHERE quantity > 0 ORDER BY item_name"); if ($available_items): while ($available = $available_items->fetch_assoc()): ?>
+                                <option value="<?= intval($available['id']) ?>" data-stock="<?= intval($available['quantity']) ?>"><?= htmlspecialchars($available['item_name']) ?> (tersedia <?= intval($available['quantity']) ?>)</option>
+                                <?php endwhile; endif; ?>
                             </select>
                             <input type="number" name="itemQty" value="1" min="1" required class="p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-center font-bold focus:ring-2 focus:ring-emerald-600 outline-none" title="Jumlah Unit">
                         </div>
-                        <input type="text" id="itemNameCustom" name="itemNameCustom" placeholder="Atau ketik nama barang lain di sini..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-600 outline-none">
+                        <p class="text-[11px] text-slate-500">Stok berkurang saat pengajuan tercatat dan kembali saat barang dikembalikan.</p>
                     </div>
 
                     <div>
@@ -191,8 +207,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST
     <script>
         lucide.createIcons();
         function autoFillItem() {
-            const val = document.getElementById('presetItemSelect').value;
-            if(val) document.getElementById('itemNameCustom').value = val;
+            const select = document.getElementById('presetItemSelect');
+            const option = select.options[select.selectedIndex];
+            const qty = document.querySelector('[name="itemQty"]');
+            qty.max = option.dataset.stock || '';
+            if (option.dataset.stock) qty.value = Math.min(parseInt(qty.value || '1'), parseInt(option.dataset.stock));
         }
     </script>
 </body>

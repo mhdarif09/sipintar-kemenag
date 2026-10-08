@@ -97,8 +97,23 @@ ALTER TABLE `users`
 --
 
 --
--- AUTO_INCREMENT untuk tabel `users`
+-- --------------------------------------------------------
+
 --
+-- Struktur dari tabel `damaged_items`
+--
+
+CREATE TABLE `damaged_items` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `item_name` varchar(150) NOT NULL,
+  `borrower_name` varchar(100) NOT NULL,
+  `borrow_date` date NOT NULL,
+  `damage_note` text NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 ALTER TABLE `users`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 COMMIT;
