@@ -367,14 +367,17 @@ if (isset($_GET['action'])) {
         $actual = $status == 1 ? date('Y-m-d H:i') : '-';
         $return_condition = $_GET['condition'] ?? 'Baik';
         if (!in_array($return_condition, ['Baik', 'Rusak Ringan', 'Rusak Berat'], true)) $return_condition = 'Baik';
-        $borrow = $conn->query("SELECT inventory_id, qty, returned, stock_deducted, return_condition FROM borrowings WHERE id='$id'");
+        $borrow = $conn->query("SELECT inventory_id, qty, returned, stock_deducted, return_condition, name, date FROM borrowings WHERE id='$id'");
         if ($borrow && $borrow->num_rows) {
             $borrow = $borrow->fetch_assoc();
             if ($status === 1 && !empty($borrow['inventory_id'])) {
-                $borrower_sql = $conn->real_escape_string($borrow['name']);
-                $damage_date = $conn->real_escape_string($borrow['date']);
-                $heavy_damage = $conn->query("SELECT id FROM damaged_items WHERE inventory_id=".(int)$borrow['inventory_id']." AND borrower_name='$borrower_sql' AND borrow_date='$damage_date' AND severity='Rusak Berat' LIMIT 1");
-                if ($heavy_damage && $heavy_damage->num_rows) $return_condition = 'Rusak Berat';
+                $borrower_sql = $conn->real_escape_string((string)($borrow['name'] ?? ''));
+                $damage_date = (string)($borrow['date'] ?? '');
+                if ($borrower_sql !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $damage_date)) {
+                    $damage_date = $conn->real_escape_string($damage_date);
+                    $heavy_damage = $conn->query("SELECT id FROM damaged_items WHERE inventory_id=".(int)$borrow['inventory_id']." AND borrower_name='$borrower_sql' AND borrow_date='$damage_date' AND severity='Rusak Berat' LIMIT 1");
+                    if ($heavy_damage && $heavy_damage->num_rows) $return_condition = 'Rusak Berat';
+                }
             }
             $conn->begin_transaction();
             $stock_delta = 0;
