@@ -15,6 +15,18 @@ if ($conn->connect_error) {
     die("Koneksi Database Gagal: " . $conn->connect_error);
 }
 
+// Tabel inventaris aset multimedia dan migrasi untuk database yang sudah ada.
+$conn->query("CREATE TABLE IF NOT EXISTS inventory_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    item_code VARCHAR(50) NOT NULL UNIQUE,
+    item_name VARCHAR(150) NOT NULL,
+    category VARCHAR(100) NOT NULL DEFAULT 'Multimedia',
+    item_condition ENUM('Baik', 'Rusak Sedang', 'Rusak Berat') NOT NULL DEFAULT 'Baik',
+    quantity INT NOT NULL DEFAULT 1,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+)");
+
 // -----------------------------------------------------------------------------
 // 2. HANDLER PROSES LOGOUT
 // -----------------------------------------------------------------------------
@@ -118,6 +130,35 @@ endif;
 
 // 4. HANDLER ACTION POST
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type'])) {
+
+    if ($_POST['form_type'] == 'save_inventory_item') {
+        $inventory_id = intval($_POST['inventory_id'] ?? 0);
+        $item_code = $conn->real_escape_string(trim($_POST['item_code'] ?? ''));
+        $item_name = $conn->real_escape_string(trim($_POST['item_name'] ?? ''));
+        $category = $conn->real_escape_string(trim($_POST['item_category'] ?? 'Multimedia'));
+        $condition = $_POST['item_condition'] ?? 'Baik';
+        $allowed_conditions = ['Baik', 'Rusak Sedang', 'Rusak Berat'];
+        if (!in_array($condition, $allowed_conditions, true)) $condition = 'Baik';
+        $condition = $conn->real_escape_string($condition);
+        $quantity = max(0, intval($_POST['item_quantity'] ?? 0));
+        if ($item_code === '' && $inventory_id === 0) $item_code = 'MM-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(2)));
+        if ($item_code !== '' && $item_name !== '') {
+            if ($inventory_id > 0) {
+                $conn->query("UPDATE inventory_items SET item_code='$item_code', item_name='$item_name', category='$category', item_condition='$condition', quantity=$quantity, updated_at=CURRENT_TIMESTAMP WHERE id=$inventory_id");
+            } else {
+                $conn->query("INSERT INTO inventory_items (item_code, item_name, category, item_condition, quantity) VALUES ('$item_code', '$item_name', '$category', '$condition', $quantity)");
+            }
+        }
+        header('Location: index.php?view=inventory');
+        exit();
+    }
+
+    if ($_POST['form_type'] == 'delete_inventory_item') {
+        $inventory_id = intval($_POST['inventory_id'] ?? 0);
+        if ($inventory_id > 0) $conn->query("DELETE FROM inventory_items WHERE id=$inventory_id");
+        header('Location: index.php?view=inventory');
+        exit();
+    }
     
     // Simpan Peminjaman Baru
     if ($_POST['form_type'] == 'add_borrowing') {
@@ -249,6 +290,7 @@ if (isset($_GET['export']) && $_GET['export'] == 'excel') {
 }
 
 $view = $_GET['view'] ?? 'dashboard';
+$inventory_items = $conn->query("SELECT * FROM inventory_items ORDER BY item_name ASC");
 
 // Fetch Data Statistik Dashboard
 $total_pinjam = $conn->query("SELECT COUNT(*) as total FROM borrowings")->fetch_assoc()['total'];
@@ -324,6 +366,7 @@ $bulan_indo = [
                 <div class="flex items-center gap-2 border-l border-emerald-700 pl-3">
                     <a href="index.php?view=dashboard" class="px-2.5 py-1 rounded <?= $view == 'dashboard' ? 'bg-emerald-500 font-bold text-white' : 'bg-emerald-700 hover:bg-emerald-600 text-white' ?> font-medium">Dashboard</a>
                     <a href="index.php?view=data" class="px-2.5 py-1 rounded <?= $view == 'data' ? 'bg-emerald-500 font-bold text-white' : 'bg-emerald-700 hover:bg-emerald-600 text-white' ?> font-medium">Data Pinjam</a>
+                    <a href="index.php?view=inventory" class="px-2.5 py-1 rounded <?= $view == 'inventory' ? 'bg-emerald-500 font-bold text-white' : 'bg-emerald-700 hover:bg-emerald-600 text-white' ?> font-medium">Data Inventaris</a>
                     <a href="index.php?action=logout" class="px-2.5 py-1 rounded bg-red-600 hover:bg-red-500 text-white font-medium">Keluar</a>
                 </div>
             </div>
@@ -451,6 +494,29 @@ $bulan_indo = [
                 </div>
             </div>
         </div>
+
+        <?php elseif ($view == 'inventory'): ?>
+        <section class="bg-white rounded-xl border border-emerald-200 shadow-sm overflow-hidden">
+            <div class="p-5 border-b flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h2 class="font-bold text-emerald-900">Inventaris Barang Multimedia</h2>
+                    <p class="text-xs text-slate-500 mt-1">Kode aset, kondisi, dan waktu perubahan terakhir.</p>
+                </div>
+                <button onclick="openInventoryModal()" class="px-3 py-2 rounded-lg bg-manGreen-700 hover:bg-manGreen-800 text-white text-xs font-bold">+ Tambah Barang</button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-manGreen-800 text-white uppercase"><tr><th class="p-3">Kode Barang</th><th class="p-3">Nama Barang</th><th class="p-3">Kategori</th><th class="p-3">Kondisi</th><th class="p-3">Jumlah</th><th class="p-3">Terakhir Diubah</th><th class="p-3">Aksi</th></tr></thead>
+                    <tbody class="divide-y">
+                    <?php if (!$inventory_items || $inventory_items->num_rows === 0): ?>
+                        <tr><td colspan="7" class="p-6 text-center text-slate-400">Belum ada barang inventaris. Tambahkan barang untuk mulai mencatat aset.</td></tr>
+                    <?php else: while ($asset = $inventory_items->fetch_assoc()): ?>
+                        <tr class="hover:bg-emerald-50"><td class="p-3 font-mono font-bold"><?= htmlspecialchars($asset['item_code']) ?></td><td class="p-3 font-semibold"><?= htmlspecialchars($asset['item_name']) ?></td><td class="p-3"><?= htmlspecialchars($asset['category']) ?></td><td class="p-3"><?= htmlspecialchars($asset['item_condition']) ?></td><td class="p-3"><?= intval($asset['quantity']) ?></td><td class="p-3"><?= htmlspecialchars(date('d-m-Y H:i', strtotime($asset['updated_at']))) ?></td><td class="p-3 flex gap-2"><button onclick='editInventoryItem(<?= json_encode($asset, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP) ?>)' class="text-blue-700 font-bold">Edit</button><form method="POST" onsubmit="return confirm('Hapus barang ini dari inventaris?')"><input type="hidden" name="form_type" value="delete_inventory_item"><input type="hidden" name="inventory_id" value="<?= intval($asset['id']) ?>"><button class="text-red-600 font-bold">Hapus</button></form></td></tr>
+                    <?php endwhile; endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </section>
 
         <?php else: ?>
         <!-- ================= HALAMAN TABEL DATA PEMINJAMAN ================= -->
@@ -603,6 +669,20 @@ $bulan_indo = [
         <?php endif; ?>
     </main>
 
+    <div id="inventoryModal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center p-4 z-50 no-print">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
+            <div class="bg-manGreen-800 text-white px-5 py-4 flex justify-between items-center"><h3 id="inventoryModalTitle" class="font-bold text-sm">Tambah Barang Inventaris</h3><button type="button" onclick="closeInventoryModal()">✕</button></div>
+            <form method="POST" class="p-5 space-y-3 text-xs">
+                <input type="hidden" name="form_type" value="save_inventory_item"><input type="hidden" id="inventory_id" name="inventory_id">
+                <div><label class="block font-semibold mb-1">Nomor Kode Barang</label><input id="inventory_code" name="item_code" class="w-full p-2 border rounded-lg" placeholder="Kosongkan untuk membuat kode otomatis saat tambah" ></div>
+                <div><label class="block font-semibold mb-1">Nama Barang</label><input id="inventory_name" name="item_name" required class="w-full p-2 border rounded-lg"></div>
+                <div><label class="block font-semibold mb-1">Kategori</label><input id="inventory_category" name="item_category" value="Multimedia" required class="w-full p-2 border rounded-lg"></div>
+                <div class="grid grid-cols-2 gap-3"><div><label class="block font-semibold mb-1">Kondisi</label><select id="inventory_condition" name="item_condition" class="w-full p-2 border rounded-lg"><option>Baik</option><option>Rusak Sedang</option><option>Rusak Berat</option></select></div><div><label class="block font-semibold mb-1">Jumlah Unit</label><input id="inventory_quantity" name="item_quantity" type="number" min="0" value="1" required class="w-full p-2 border rounded-lg"></div></div>
+                <div class="flex justify-end gap-2 pt-3"><button type="button" onclick="closeInventoryModal()" class="px-4 py-2 bg-slate-100 rounded-lg">Batal</button><button class="px-5 py-2 bg-manGreen-700 text-white rounded-lg font-bold">Simpan</button></div>
+            </form>
+        </div>
+    </div>
+
     <!-- MODAL FORM TAMBAH PEMINJAMAN -->
     <div id="itemModal" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50 hidden no-print">
         <div class="bg-white rounded-2xl border border-emerald-100 shadow-2xl max-w-lg w-full overflow-hidden">
@@ -744,6 +824,33 @@ $bulan_indo = [
         function autoFillItem() {
             const val = document.getElementById('presetItemSelect').value;
             if(val) document.getElementById('itemNameCustom').value = val;
+        }
+
+        function openInventoryModal() {
+            document.getElementById('inventoryModalTitle').textContent = 'Tambah Barang Inventaris';
+            document.getElementById('inventory_id').value = '';
+            document.getElementById('inventory_code').value = '';
+            document.getElementById('inventory_name').value = '';
+            document.getElementById('inventory_category').value = 'Multimedia';
+            document.getElementById('inventory_condition').value = 'Baik';
+            document.getElementById('inventory_quantity').value = '1';
+            document.getElementById('inventoryModal').classList.remove('hidden');
+            document.getElementById('inventoryModal').classList.add('flex');
+        }
+        function editInventoryItem(item) {
+            document.getElementById('inventoryModalTitle').textContent = 'Edit Barang Inventaris';
+            document.getElementById('inventory_id').value = item.id;
+            document.getElementById('inventory_code').value = item.item_code;
+            document.getElementById('inventory_name').value = item.item_name;
+            document.getElementById('inventory_category').value = item.category;
+            document.getElementById('inventory_condition').value = item.item_condition;
+            document.getElementById('inventory_quantity').value = item.quantity;
+            document.getElementById('inventoryModal').classList.remove('hidden');
+            document.getElementById('inventoryModal').classList.add('flex');
+        }
+        function closeInventoryModal() {
+            document.getElementById('inventoryModal').classList.add('hidden');
+            document.getElementById('inventoryModal').classList.remove('flex');
         }
 
         function openEditModal(data) {

@@ -305,10 +305,13 @@
                         <thead class="bg-slate-100 border-b text-xs font-semibold text-slate-600">
                             <tr>
                                 <th class="p-3 w-12">No</th>
+                                <th class="p-3">Kode Barang</th>
                                 <th class="p-3">Nama Barang</th>
                                 <th class="p-3">Jenis Barang</th>
+                                <th class="p-3">Kondisi</th>
                                 <th class="p-3">Stok Tersedia</th>
                                 <th class="p-3">Satuan</th>
+                                <th class="p-3">Terakhir Diubah</th>
                                 <th class="p-3 w-28 text-center">Aksi</th>
                             </tr>
                         </thead>
@@ -495,12 +498,24 @@
             <form id="form-barang" onsubmit="handleSaveMasterBarang(event)" class="p-5 space-y-4">
                 <input type="hidden" id="barang-id">
                 <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Nomor Kode Barang</label>
+                    <input type="text" id="barang-kode" required class="w-full px-3 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Contoh: BRG-00001">
+                </div>
+                <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Barang</label>
                     <input type="text" id="barang-nama" required class="w-full px-3 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Contoh: Spidol Boardmarker">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Jenis / Kategori Barang</label>
                     <input type="text" id="barang-jenis" required class="w-full px-3 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Contoh: ATK / Alat Kebersihan">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Kondisi Barang</label>
+                    <select id="barang-kondisi" required class="w-full px-3 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500">
+                        <option value="Baik">Baik</option>
+                        <option value="Rusak Sedang">Rusak Sedang</option>
+                        <option value="Rusak Berat">Rusak Berat</option>
+                    </select>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
@@ -624,7 +639,7 @@
             tbody.innerHTML = '';
 
             if (masterBarangList.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-xs text-slate-400">Belum ada data barang. Silakan unggah Excel atau tambah manual.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-xs text-slate-400">Belum ada data barang. Silakan unggah Excel atau tambah manual.</td></tr>`;
                 return;
             }
 
@@ -633,12 +648,15 @@
                 tr.className = "border-b text-xs hover:bg-slate-50";
                 tr.innerHTML = `
                     <td class="p-3 font-semibold">${index + 1}</td>
+                    <td class="p-3 font-mono text-slate-600">${b.kode_barang || '-'}</td>
                     <td class="p-3 font-semibold text-slate-800">${b.nama_barang}</td>
                     <td class="p-3 text-slate-600">${b.jenis_barang}</td>
+                    <td class="p-3 text-slate-600">${b.kondisi || 'Baik'}</td>
                     <td class="p-3 font-bold ${b.stok <= 5 ? 'text-rose-600' : 'text-emerald-700'}">${b.stok}</td>
                     <td class="p-3">${b.satuan}</td>
+                    <td class="p-3 text-slate-500">${b.updated_at ? new Date(b.updated_at.replace(' ', 'T')).toLocaleString('id-ID') : '-'}</td>
                     <td class="p-3 text-center flex justify-center gap-2">
-                        <button onclick="editBarang(${b.id}, '${b.nama_barang}', '${b.jenis_barang}', ${b.stok}, '${b.satuan}')" class="text-blue-600 hover:text-blue-800 p-1" title="Edit">
+                        <button onclick="editBarang(${b.id})" class="text-blue-600 hover:text-blue-800 p-1" title="Edit">
                             <i data-lucide="edit" class="w-4 h-4"></i>
                         </button>
                         <button onclick="hapusBarang(${b.id})" class="text-rose-600 hover:text-rose-800 p-1" title="Hapus">
@@ -817,8 +835,10 @@
         function openBarangModal() {
             document.getElementById('modal-barang-title').innerText = "Tambah Data Barang";
             document.getElementById('barang-id').value = "";
+            document.getElementById('barang-kode').value = "";
             document.getElementById('barang-nama').value = "";
             document.getElementById('barang-jenis').value = "";
+            document.getElementById('barang-kondisi').value = "Baik";
             document.getElementById('barang-stok').value = "0";
             document.getElementById('barang-satuan').value = "";
             document.getElementById('modal-barang').classList.remove('hidden');
@@ -828,13 +848,17 @@
             document.getElementById('modal-barang').classList.add('hidden');
         }
 
-        function editBarang(id, nama, jenis, stok, satuan) {
+        function editBarang(id) {
+            const barang = masterBarangList.find(item => Number(item.id) === Number(id));
+            if (!barang) return;
             document.getElementById('modal-barang-title').innerText = "Edit Data Barang";
             document.getElementById('barang-id').value = id;
-            document.getElementById('barang-nama').value = nama;
-            document.getElementById('barang-jenis').value = jenis;
-            document.getElementById('barang-stok').value = stok;
-            document.getElementById('barang-satuan').value = satuan;
+            document.getElementById('barang-kode').value = barang.kode_barang || '';
+            document.getElementById('barang-nama').value = barang.nama_barang;
+            document.getElementById('barang-jenis').value = barang.jenis_barang;
+            document.getElementById('barang-kondisi').value = barang.kondisi || 'Baik';
+            document.getElementById('barang-stok').value = barang.stok;
+            document.getElementById('barang-satuan').value = barang.satuan;
             document.getElementById('modal-barang').classList.remove('hidden');
         }
 
@@ -842,7 +866,9 @@
             e.preventDefault();
             const id = document.getElementById('barang-id').value;
             const nama = document.getElementById('barang-nama').value;
+            const kode = document.getElementById('barang-kode').value;
             const jenis = document.getElementById('barang-jenis').value;
+            const kondisi = document.getElementById('barang-kondisi').value;
             const stok = document.getElementById('barang-stok').value;
             const satuan = document.getElementById('barang-satuan').value;
 
@@ -850,7 +876,7 @@
                 const res = await fetch('api.php?action=save_barang', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id, nama_barang: nama, jenis_barang: jenis, stok, satuan })
+                    body: JSON.stringify({ id, kode_barang: kode, nama_barang: nama, jenis_barang: jenis, kondisi, stok, satuan })
                 });
                 const result = await res.json();
                 if (result.success) {

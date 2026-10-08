@@ -18,11 +18,26 @@ if ($conn->connect_error) {
 $conn->query("CREATE TABLE IF NOT EXISTS barang (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nama_barang VARCHAR(150) NOT NULL,
+    kode_barang VARCHAR(50) NULL UNIQUE,
     jenis_barang VARCHAR(100) NOT NULL,
+    kondisi ENUM('Baik', 'Rusak Sedang', 'Rusak Berat') NOT NULL DEFAULT 'Baik',
     stok INT NOT NULL DEFAULT 0,
     satuan VARCHAR(50) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 )");
+
+// Migrasi aman untuk instalasi yang sudah memiliki tabel barang.
+foreach ([
+    'kode_barang' => "ALTER TABLE barang ADD COLUMN kode_barang VARCHAR(50) NULL UNIQUE AFTER nama_barang",
+    'kondisi' => "ALTER TABLE barang ADD COLUMN kondisi ENUM('Baik', 'Rusak Sedang', 'Rusak Berat') NOT NULL DEFAULT 'Baik' AFTER jenis_barang",
+    'updated_at' => "ALTER TABLE barang ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER created_at"
+] as $column => $migration) {
+    $check = $conn->query("SHOW COLUMNS FROM barang LIKE '$column'");
+    if ($check && $check->num_rows === 0) $conn->query($migration);
+}
+// Barang lama diberi kode berdasarkan ID agar tiap barang memiliki nomor inventaris.
+$conn->query("UPDATE barang SET kode_barang = CONCAT('BRG-', LPAD(id, 5, '0')) WHERE kode_barang IS NULL OR kode_barang = ''");
 
 $conn->query("CREATE TABLE IF NOT EXISTS transaksi (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -94,14 +109,19 @@ if ($action === 'save_barang') {
     $input = json_decode(file_get_contents('php://input'), true);
     $id    = (int)($input['id'] ?? 0);
     $nama  = $conn->real_escape_string($input['nama_barang'] ?? '');
+    $kode  = $conn->real_escape_string(trim($input['kode_barang'] ?? ''));
     $jenis = $conn->real_escape_string($input['jenis_barang'] ?? '');
+    $kondisi = $conn->real_escape_string($input['kondisi'] ?? 'Baik');
     $stok  = (int)($input['stok'] ?? 0);
     $satuan= $conn->real_escape_string($input['satuan'] ?? '');
 
+    if (!in_array($kondisi, ['Baik', 'Rusak Sedang', 'Rusak Berat'], true)) $kondisi = 'Baik';
+    if ($kode === '') $kode = 'BRG-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(2)));
+
     if ($id > 0) {
-        $sql = "UPDATE barang SET nama_barang='$nama', jenis_barang='$jenis', stok=$stok, satuan='$satuan' WHERE id=$id";
+        $sql = "UPDATE barang SET kode_barang='$kode', nama_barang='$nama', jenis_barang='$jenis', kondisi='$kondisi', stok=$stok, satuan='$satuan', updated_at=CURRENT_TIMESTAMP WHERE id=$id";
     } else {
-        $sql = "INSERT INTO barang (nama_barang, jenis_barang, stok, satuan) VALUES ('$nama', '$jenis', $stok, '$satuan')";
+        $sql = "INSERT INTO barang (kode_barang, nama_barang, jenis_barang, kondisi, stok, satuan) VALUES ('$kode', '$nama', '$jenis', '$kondisi', $stok, '$satuan')";
     }
 
     if ($conn->query($sql)) {
