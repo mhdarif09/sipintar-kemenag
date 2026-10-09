@@ -1,11 +1,12 @@
 <?php
+session_start();
 header('Content-Type: application/json');
 error_reporting(0);
 
 $host = 'localhost';
-$user = 'rdme2495_sipintar_db';
-$pass = 'portaldata2026';
-$db   = 'rdme2495_sipintar_db';
+$user = 'root';
+$pass = '';
+$db   = 'sipintar_db';
 
 $conn = new mysqli($host, $user, $pass, $db);
 
@@ -78,6 +79,9 @@ if ($action === 'login') {
 
     if ($res && $res->num_rows > 0) {
         $row = $res->fetch_assoc();
+        session_regenerate_id(true);
+        $_SESSION['user_id'] = (int)$row['id'];
+        $_SESSION['user_role'] = strtolower($row['role'] ?? 'pegawai');
         echo json_encode([
             'success'  => true,
             'id'       => (string)$row['id'],
@@ -90,6 +94,172 @@ if ($action === 'login') {
     
     echo json_encode(['success' => false, 'message' => 'Username atau password salah!']);
     exit;
+}
+
+if ($action === 'logout') {
+    $_SESSION = [];
+    session_destroy();
+    echo json_encode(['success' => true]);
+    exit;
+}
+
+// Kelola akun hanya dapat digunakan oleh akun yang sudah login.
+if (in_array($action, ['get_accounts', 'create_account', 'edit_account', 'delete_account', 'change_own_password'], true)) {
+    if (empty($_SESSION['user_id'])) {
+        http_response_code(401);
+        echo json_encode(['success' => false, 'message' => 'Silakan login kembali.']);
+        exit;
+    }
+
+    $input = json_decode(file_get_contents('php://input'), true) ?? [];
+    $isAdmin = ($_SESSION['user_role'] ?? '') === 'admin';
+    $sessionRole = $_SESSION['user_role'] ?? '';
+    if (!in_array($sessionRole, ['admin', 'pegawai', 'pemantau'], true)
+        || ($sessionRole === 'pemantau' && $action !== 'change_own_password')) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Akun ini tidak memiliki akses ke fitur tersebut.']);
+        exit;
+    }
+
+    if ($action === 'get_accounts') {
+        if (!$isAdmin) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Hanya admin yang dapat melihat daftar akun.']);
+            exit;
+        }
+        $res = $conn->query("SELECT id, username, password, nama_lengkap, role FROM users ORDER BY username ASC");
+        $accounts = [];
+        if ($res) while ($row = $res->fetch_assoc()) $accounts[] = $row;
+        echo json_encode(['success' => true, 'data' => $accounts]);
+        exit;
+    }
+
+    if ($action === 'create_account') {
+        if (!$isAdmin) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Hanya admin yang dapat menambahkan akun.']);
+            exit;
+        }
+        $username = trim($input['username'] ?? '');
+        $password = $input['password'] ?? '';
+        $nama = trim($input['nama_lengkap'] ?? '');
+        $role = strtolower($input['role'] ?? 'pegawai');
+        if ($username === '' || $password === '' || $nama === '' || !in_array($role, ['admin', 'pegawai', 'pemantau'], true)) {
+            echo json_encode(['success' => false, 'message' => 'Lengkapi data akun dengan benar.']);
+            exit;
+        }
+        $stmt = $conn->prepare('INSERT INTO users (username, password, nama_lengkap, role) VALUES (?, ?, ?, ?)');
+        $stmt->bind_param('ssss', $username, $password, $nama, $role);
+        if ($stmt->execute()) {
+            echo json_encode(['success' => true, 'message' => 'Akun baru berhasil ditambahkan.']);
+        } else {
+            echo json_encode(['success' => false, 'message' => $stmt->errno === 1062 ? 'Username sudah digunakan.' : 'Gagal menambahkan akun.']);
+        }
+        exit;
+    }
+
+    if ($action === 'edit_account') {
+        if (!$isAdmin) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Hanya admin yang dapat mengedit akun.']);
+            exit;
+        }
+        $id = (int)($input['id'] ?? 0);
+        $username = trim($input['username'] ?? '');
+        $nama = trim($input['nama_lengkap'] ?? '');
+        $password = $input['password'] ?? '';
+        $role = strtolower($input['role'] ?? '');
+        if ($id < 1 || $username === '' || $nama === '' || !in_array($role, ['admin', 'pegawai', 'pemantau'], true)) {
+            echo json_encode(['success' => false, 'message' => 'Data akun tidak valid.']);
+            exit;
+        }
+        $check = $conn->prepare('SELECT role FROM users WHERE id = ?');
+        $check->bind_param('i', $id);
+        $check->execute();
+        $target = $check->get_result()->fetch_assoc();
+        if (!$target) {
+            echo json_encode(['success' => false, 'message' => 'Akun tidak ditemukan.']);
+            exit;
+        }
+        if ($target['role'] === 'admin' && $role !== 'admin') {
+            $count = $conn->query("SELECT COUNT(*) AS total FROM users WHERE role = 'admin'")->fetch_assoc();
+            if ((int)$count['total'] <= 1 || $id === (int)$_SESSION['user_id']) {
+                echo json_encode(['success' => false, 'message' => 'Akun admin terakhir atau akun admin yang sedang digunakan tidak dapat diubah menjadi pegawai.']);
+                exit;
+            }
+        }
+        if ($password !== '' && strlen($password) < 4) {
+            echo json_encode(['success' => false, 'message' => 'Password baru minimal 4 karakter.']);
+            exit;
+        }
+        if ($password === '') {
+            $stmt = $conn->prepare('UPDATE users SET username = ?, nama_lengkap = ?, role = ? WHERE id = ?');
+            $stmt->bind_param('sssi', $username, $nama, $role, $id);
+        } else {
+            $stmt = $conn->prepare('UPDATE users SET username = ?, nama_lengkap = ?, role = ?, password = ? WHERE id = ?');
+            $stmt->bind_param('ssssi', $username, $nama, $role, $password, $id);
+        }
+        if ($stmt->execute()) {
+            if ($id === (int)$_SESSION['user_id']) $_SESSION['user_role'] = $role;
+            echo json_encode(['success' => true, 'message' => 'Akun berhasil diperbarui.']);
+        } else {
+            echo json_encode(['success' => false, 'message' => $stmt->errno === 1062 ? 'Username sudah digunakan.' : 'Gagal memperbarui akun.']);
+        }
+        exit;
+    }
+
+    if ($action === 'delete_account') {
+        if (!$isAdmin) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Hanya admin yang dapat menghapus akun.']);
+            exit;
+        }
+        $id = (int)($input['id'] ?? 0);
+        if ($id < 1 || $id === (int)$_SESSION['user_id']) {
+            echo json_encode(['success' => false, 'message' => 'Akun yang sedang digunakan tidak dapat dihapus.']);
+            exit;
+        }
+        $check = $conn->prepare('SELECT role FROM users WHERE id = ?');
+        $check->bind_param('i', $id);
+        $check->execute();
+        $target = $check->get_result()->fetch_assoc();
+        if (!$target) {
+            echo json_encode(['success' => false, 'message' => 'Akun tidak ditemukan.']);
+            exit;
+        }
+        if ($target['role'] === 'admin') {
+            $count = $conn->query("SELECT COUNT(*) AS total FROM users WHERE role = 'admin'")->fetch_assoc();
+            if ((int)$count['total'] <= 1) {
+                echo json_encode(['success' => false, 'message' => 'Admin terakhir tidak dapat dihapus.']);
+                exit;
+            }
+        }
+        $stmt = $conn->prepare('DELETE FROM users WHERE id = ?');
+        $stmt->bind_param('i', $id);
+        echo json_encode($stmt->execute()
+            ? ['success' => true, 'message' => 'Akun berhasil dihapus.']
+            : ['success' => false, 'message' => 'Gagal menghapus akun.']);
+        exit;
+    }
+
+    if ($action === 'change_own_password') {
+        $current = $input['current_password'] ?? '';
+        $new = $input['new_password'] ?? '';
+        if ($current === '' || strlen($new) < 4) {
+            echo json_encode(['success' => false, 'message' => 'Masukkan password saat ini dan password baru minimal 4 karakter.']);
+            exit;
+        }
+        $stmt = $conn->prepare('UPDATE users SET password = ? WHERE id = ? AND password = ?');
+        $userId = (int)$_SESSION['user_id'];
+        $stmt->bind_param('sis', $new, $userId, $current);
+        $stmt->execute();
+        if ($stmt->affected_rows > 0) {
+            echo json_encode(['success' => true, 'message' => 'Password berhasil diubah.']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Password saat ini tidak sesuai atau password baru sama dengan password lama.']);
+        }
+        exit;
+    }
 }
 
 // 2. KELOLA MASTER BARANG
@@ -109,22 +279,26 @@ if ($action === 'save_barang') {
     $input = json_decode(file_get_contents('php://input'), true);
     $id    = (int)($input['id'] ?? 0);
     $nama  = $conn->real_escape_string($input['nama_barang'] ?? '');
-    $kode  = $conn->real_escape_string(trim($input['kode_barang'] ?? ''));
     $jenis = $conn->real_escape_string($input['jenis_barang'] ?? '');
     $kondisi = $conn->real_escape_string($input['kondisi'] ?? 'Baik');
     $stok  = (int)($input['stok'] ?? 0);
     $satuan= $conn->real_escape_string($input['satuan'] ?? '');
 
     if (!in_array($kondisi, ['Baik', 'Rusak Sedang', 'Rusak Berat'], true)) $kondisi = 'Baik';
-    if ($kode === '') $kode = 'BRG-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(2)));
-
     if ($id > 0) {
-        $sql = "UPDATE barang SET kode_barang='$kode', nama_barang='$nama', jenis_barang='$jenis', kondisi='$kondisi', stok=$stok, satuan='$satuan', updated_at=CURRENT_TIMESTAMP WHERE id=$id";
+        $sql = "UPDATE barang SET nama_barang='$nama', jenis_barang='$jenis', kondisi='$kondisi', stok=$stok, satuan='$satuan', updated_at=CURRENT_TIMESTAMP WHERE id=$id";
+        $success = $conn->query($sql);
     } else {
-        $sql = "INSERT INTO barang (kode_barang, nama_barang, jenis_barang, kondisi, stok, satuan) VALUES ('$kode', '$nama', '$jenis', '$kondisi', $stok, '$satuan')";
+        // Gunakan ID barang sebagai nomor 5 digit supaya kode selalu unik.
+        $success = $conn->query("INSERT INTO barang (kode_barang, nama_barang, jenis_barang, kondisi, stok, satuan) VALUES (NULL, '$nama', '$jenis', '$kondisi', $stok, '$satuan')");
+        if ($success) {
+            $idBaru = (int)$conn->insert_id;
+            $kode = 'BRG-' . str_pad((string)$idBaru, 5, '0', STR_PAD_LEFT);
+            $success = $conn->query("UPDATE barang SET kode_barang='$kode' WHERE id=$idBaru");
+        }
     }
 
-    if ($conn->query($sql)) {
+    if ($success) {
         echo json_encode(['success' => true, 'message' => 'Data barang berhasil disimpan!']);
     } else {
         echo json_encode(['success' => false, 'message' => 'Gagal menyimpan barang: ' . $conn->error]);
@@ -155,7 +329,12 @@ if ($action === 'save_template_barang') {
                 $newStok = $row['stok'] + $stok;
                 $conn->query("UPDATE barang SET stok = $newStok, jenis_barang = '$jenis', satuan = '$satuan' WHERE id = " . $row['id']);
             } else {
-                $conn->query("INSERT INTO barang (nama_barang, jenis_barang, stok, satuan) VALUES ('$nama', '$jenis', $stok, '$satuan')");
+                $inserted = $conn->query("INSERT INTO barang (kode_barang, nama_barang, jenis_barang, stok, satuan) VALUES (NULL, '$nama', '$jenis', $stok, '$satuan')");
+                if ($inserted) {
+                    $idBaru = (int)$conn->insert_id;
+                    $kode = 'BRG-' . str_pad((string)$idBaru, 5, '0', STR_PAD_LEFT);
+                    $conn->query("UPDATE barang SET kode_barang='$kode' WHERE id=$idBaru");
+                }
             }
         }
         $conn->commit();

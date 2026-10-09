@@ -103,6 +103,9 @@
                 <button onclick="switchTab('history')" id="tab-history" class="px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2 whitespace-nowrap">
                     <i data-lucide="history" class="w-4 h-4"></i> Riwayat & Laporan
                 </button>
+                <button onclick="switchTab('akun')" id="tab-akun" class="px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="users" class="w-4 h-4"></i> Kelola Akun
+                </button>
             </div>
 
             <!-- SECTION 0: DASHBOARD STATISTIK -->
@@ -498,10 +501,6 @@
             <form id="form-barang" onsubmit="handleSaveMasterBarang(event)" class="p-5 space-y-4">
                 <input type="hidden" id="barang-id">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Nomor Kode Barang</label>
-                    <input type="text" id="barang-kode" required class="w-full px-3 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Contoh: BRG-00001">
-                </div>
-                <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Barang</label>
                     <input type="text" id="barang-nama" required class="w-full px-3 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Contoh: Spidol Boardmarker">
                 </div>
@@ -535,10 +534,49 @@
         </div>
     </div>
 
+    <!-- KELOLA AKUN -->
+    <section id="section-akun" class="hidden max-w-7xl mx-auto px-4 pb-6">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <div class="mb-6 pb-4 border-b">
+                <h2 class="text-base font-bold text-slate-800">Kelola Akun</h2>
+                <p id="akun-description" class="text-xs text-slate-500">Kelola akun pengguna SIPINTAR.</p>
+            </div>
+            <div id="admin-account-tools" class="hidden space-y-6">
+                <form id="form-akun-baru" onsubmit="handleCreateAccount(event)" class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end bg-slate-50 p-4 rounded-lg border">
+                    <div><label class="block text-[11px] font-semibold text-slate-600 mb-1">Nama lengkap</label><input id="akun-nama" required class="w-full px-3 py-2 border rounded-lg text-sm" autocomplete="name"></div>
+                    <div><label class="block text-[11px] font-semibold text-slate-600 mb-1">Username</label><input id="akun-username" required class="w-full px-3 py-2 border rounded-lg text-sm" autocomplete="username"></div>
+                    <div><label class="block text-[11px] font-semibold text-slate-600 mb-1">Password</label><input id="akun-password" type="password" required minlength="4" class="w-full px-3 py-2 border rounded-lg text-sm" autocomplete="new-password"></div>
+                    <div><label class="block text-[11px] font-semibold text-slate-600 mb-1">Peran</label><select id="akun-role" class="w-full px-3 py-2 border rounded-lg text-sm"><option value="pegawai">Pegawai</option><option value="admin">Admin</option><option value="pemantau">Pemantau</option></select></div>
+                    <button type="submit" class="bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-2 rounded-lg text-sm font-semibold">Tambah Akun</button>
+                </form>
+                <div class="overflow-x-auto border rounded-lg">
+                    <table class="w-full text-sm text-left"><thead class="bg-slate-100 border-b text-xs font-semibold text-slate-600"><tr><th class="p-3">Nama</th><th class="p-3">Username</th><th class="p-3">Password</th><th class="p-3">Peran</th><th class="p-3">Aksi</th></tr></thead><tbody id="account-table-body"></tbody></table>
+                </div>
+                <div id="modal-edit-akun" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900 bg-opacity-50 p-4">
+                    <form onsubmit="handleEditAccount(event)" class="bg-white rounded-xl shadow-xl max-w-md w-full p-5 space-y-4">
+                        <div class="flex items-center justify-between"><h3 class="font-bold">Edit Akun</h3><button type="button" onclick="closeEditAccountModal()" class="text-slate-500 text-xl">&times;</button></div>
+                        <input id="edit-akun-id" type="hidden">
+                        <div><label class="block text-xs font-semibold text-slate-600 mb-1">Nama lengkap</label><input id="edit-akun-nama" required class="w-full px-3 py-2 border rounded-lg text-sm"></div>
+                        <div><label class="block text-xs font-semibold text-slate-600 mb-1">Username</label><input id="edit-akun-username" required class="w-full px-3 py-2 border rounded-lg text-sm"></div>
+                        <div><label class="block text-xs font-semibold text-slate-600 mb-1">Password baru</label><input id="edit-akun-password" type="password" minlength="4" autocomplete="new-password" placeholder="Kosongkan jika tidak diubah" class="w-full px-3 py-2 border rounded-lg text-sm"></div>
+                        <div><label class="block text-xs font-semibold text-slate-600 mb-1">Peran</label><select id="edit-akun-role" class="w-full px-3 py-2 border rounded-lg text-sm"><option value="pegawai">Pegawai</option><option value="admin">Admin</option><option value="pemantau">Pemantau</option></select></div>
+                        <div class="flex justify-end gap-2"><button type="button" onclick="closeEditAccountModal()" class="px-4 py-2 border rounded-lg text-sm">Batal</button><button type="submit" class="px-4 py-2 bg-emerald-700 text-white rounded-lg text-sm font-semibold">Simpan Perubahan</button></div>
+                    </form>
+                </div>
+            </div>
+            <form id="form-ubah-password" onsubmit="handleChangeOwnPassword(event)" class="hidden max-w-md space-y-4">
+                <div><label class="block text-xs font-semibold text-slate-600 mb-1">Password saat ini</label><input id="password-saat-ini" type="password" required autocomplete="current-password" class="w-full px-3 py-2 border rounded-lg text-sm"></div>
+                <div><label class="block text-xs font-semibold text-slate-600 mb-1">Password baru (minimal 4 karakter)</label><input id="password-baru" type="password" required minlength="4" autocomplete="new-password" class="w-full px-3 py-2 border rounded-lg text-sm"></div>
+                <button type="submit" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-lg text-sm font-semibold">Ubah Password</button>
+            </form>
+        </div>
+    </section>
+
     <!-- JAVASCRIPT LOGIC -->
     <script>
         let rawTransaksiData = [];
         let masterBarangList = [];
+        let showAllCriticalStock = false;
 
         document.addEventListener('DOMContentLoaded', () => {
             if (window.lucide) lucide.createIcons();
@@ -589,6 +627,14 @@
 
             const userName = sessionStorage.getItem('sipintar_user') || 'Pengguna Sistem';
             document.getElementById('user-name').innerText = userName;
+            const isAdmin = sessionStorage.getItem('sipintar_role') === 'admin';
+            const isStaff = ['admin', 'pegawai'].includes(sessionStorage.getItem('sipintar_role'));
+            document.getElementById('tab-akun').classList.toggle('hidden', !isStaff);
+            document.getElementById('admin-account-tools').classList.toggle('hidden', !isAdmin);
+            document.getElementById('form-ubah-password').classList.toggle('hidden', isAdmin || !isStaff);
+            document.getElementById('akun-description').innerText = isAdmin
+                ? 'Lihat akun dan password yang terdaftar, atau tambahkan akun baru.'
+                : 'Ubah password akun Anda sendiri.';
 
             await loadMasterBarang();
             await loadTransaksiData();
@@ -598,9 +644,133 @@
             switchTab('dashboard');
         }
 
-        function handleLogout() {
+        async function handleLogout() {
+            try { await fetch('api.php?action=logout'); } catch (err) {}
             sessionStorage.clear();
             location.reload();
+        }
+
+        async function loadAccounts() {
+            const tbody = document.getElementById('account-table-body');
+            tbody.innerHTML = '<tr><td colspan="5" class="p-3 text-center text-slate-400">Memuat akun...</td></tr>';
+            try {
+                const res = await fetch('api.php?action=get_accounts');
+                const result = await res.json();
+                if (!result.success) throw new Error(result.message);
+                tbody.innerHTML = '';
+                result.data.forEach(account => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'border-b text-xs';
+                    [account.nama_lengkap, account.username, account.password, account.role].forEach(value => {
+                        const td = document.createElement('td');
+                        td.className = 'p-3';
+                        td.textContent = value;
+                        tr.appendChild(td);
+                    });
+                    const actions = document.createElement('td');
+                    actions.className = 'p-3 whitespace-nowrap';
+                    const editButton = document.createElement('button');
+                    editButton.type = 'button';
+                    editButton.className = 'text-emerald-700 hover:text-emerald-900 font-semibold mr-3';
+                    editButton.textContent = 'Edit';
+                    editButton.addEventListener('click', () => openEditAccountModal(account));
+                    const deleteButton = document.createElement('button');
+                    deleteButton.type = 'button';
+                    deleteButton.className = 'text-rose-600 hover:text-rose-800 font-semibold';
+                    deleteButton.textContent = 'Hapus';
+                    deleteButton.addEventListener('click', () => handleDeleteAccount(account));
+                    actions.append(editButton, deleteButton);
+                    tr.appendChild(actions);
+                    tbody.appendChild(tr);
+                });
+                if (result.data.length === 0) tbody.innerHTML = '<tr><td colspan="5" class="p-3 text-center text-slate-400">Belum ada akun.</td></tr>';
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-3 text-center text-rose-600">${err.message || 'Gagal memuat akun.'}</td></tr>`;
+            }
+        }
+
+        function openEditAccountModal(account) {
+            document.getElementById('edit-akun-id').value = account.id;
+            document.getElementById('edit-akun-nama').value = account.nama_lengkap;
+            document.getElementById('edit-akun-username').value = account.username;
+            document.getElementById('edit-akun-password').value = '';
+            document.getElementById('edit-akun-role').value = account.role;
+            document.getElementById('modal-edit-akun').classList.remove('hidden');
+        }
+
+        function closeEditAccountModal() {
+            document.getElementById('modal-edit-akun').classList.add('hidden');
+        }
+
+        async function handleEditAccount(e) {
+            e.preventDefault();
+            const payload = {
+                id: document.getElementById('edit-akun-id').value,
+                nama_lengkap: document.getElementById('edit-akun-nama').value.trim(),
+                username: document.getElementById('edit-akun-username').value.trim(),
+                password: document.getElementById('edit-akun-password').value,
+                role: document.getElementById('edit-akun-role').value
+            };
+            try {
+                const res = await fetch('api.php?action=edit_account', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+                });
+                const result = await res.json();
+                alert(result.message);
+                if (result.success) {
+                    closeEditAccountModal();
+                    await loadAccounts();
+                }
+            } catch (err) { alert('Gagal memperbarui akun.'); }
+        }
+
+        async function handleDeleteAccount(account) {
+            if (!confirm(`Hapus akun "${account.username}"? Tindakan ini tidak dapat dibatalkan.`)) return;
+            try {
+                const res = await fetch('api.php?action=delete_account', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: account.id })
+                });
+                const result = await res.json();
+                alert(result.message);
+                if (result.success) await loadAccounts();
+            } catch (err) { alert('Gagal menghapus akun.'); }
+        }
+
+        async function handleCreateAccount(e) {
+            e.preventDefault();
+            const payload = {
+                nama_lengkap: document.getElementById('akun-nama').value.trim(),
+                username: document.getElementById('akun-username').value.trim(),
+                password: document.getElementById('akun-password').value,
+                role: document.getElementById('akun-role').value
+            };
+            try {
+                const res = await fetch('api.php?action=create_account', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+                });
+                const result = await res.json();
+                alert(result.message);
+                if (result.success) {
+                    document.getElementById('form-akun-baru').reset();
+                    await loadAccounts();
+                }
+            } catch (err) { alert('Gagal menambahkan akun.'); }
+        }
+
+        async function handleChangeOwnPassword(e) {
+            e.preventDefault();
+            try {
+                const res = await fetch('api.php?action=change_own_password', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        current_password: document.getElementById('password-saat-ini').value,
+                        new_password: document.getElementById('password-baru').value
+                    })
+                });
+                const result = await res.json();
+                alert(result.message);
+                if (result.success) document.getElementById('form-ubah-password').reset();
+            } catch (err) { alert('Gagal mengubah password.'); }
         }
 
         function updateAllSelectOptions() {
@@ -694,7 +864,8 @@
                     </div>
                 `;
             } else {
-                kritis.forEach(b => {
+                const daftarTampil = showAllCriticalStock ? kritis : kritis.slice(0, 1);
+                daftarTampil.forEach(b => {
                     const statusClass = b.stok == 0 ? 'bg-rose-50 border-rose-300 text-rose-800' : 'bg-amber-50 border-amber-300 text-amber-800';
                     const badgeClass = b.stok == 0 ? 'bg-rose-600 text-white' : 'bg-amber-500 text-white';
                     const statusText = b.stok == 0 ? 'STOK HABIS' : 'STOK TIPIS';
@@ -716,6 +887,20 @@
                     `;
                     alertContainer.appendChild(div);
                 });
+
+                if (kritis.length > 1) {
+                    const toggleButton = document.createElement('button');
+                    toggleButton.type = 'button';
+                    toggleButton.className = 'text-xs font-semibold text-emerald-700 hover:text-emerald-900 hover:underline';
+                    toggleButton.textContent = showAllCriticalStock
+                        ? 'Tampilkan lebih sedikit'
+                        : `Lihat semua ${kritis.length} barang kritis`;
+                    toggleButton.addEventListener('click', () => {
+                        showAllCriticalStock = !showAllCriticalStock;
+                        renderDashboardWidgets();
+                    });
+                    alertContainer.appendChild(toggleButton);
+                }
             }
 
             const recentTbody = document.getElementById('dash-recent-table-body');
@@ -835,7 +1020,6 @@
         function openBarangModal() {
             document.getElementById('modal-barang-title').innerText = "Tambah Data Barang";
             document.getElementById('barang-id').value = "";
-            document.getElementById('barang-kode').value = "";
             document.getElementById('barang-nama').value = "";
             document.getElementById('barang-jenis').value = "";
             document.getElementById('barang-kondisi').value = "Baik";
@@ -853,7 +1037,6 @@
             if (!barang) return;
             document.getElementById('modal-barang-title').innerText = "Edit Data Barang";
             document.getElementById('barang-id').value = id;
-            document.getElementById('barang-kode').value = barang.kode_barang || '';
             document.getElementById('barang-nama').value = barang.nama_barang;
             document.getElementById('barang-jenis').value = barang.jenis_barang;
             document.getElementById('barang-kondisi').value = barang.kondisi || 'Baik';
@@ -866,7 +1049,6 @@
             e.preventDefault();
             const id = document.getElementById('barang-id').value;
             const nama = document.getElementById('barang-nama').value;
-            const kode = document.getElementById('barang-kode').value;
             const jenis = document.getElementById('barang-jenis').value;
             const kondisi = document.getElementById('barang-kondisi').value;
             const stok = document.getElementById('barang-stok').value;
@@ -876,7 +1058,7 @@
                 const res = await fetch('api.php?action=save_barang', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id, kode_barang: kode, nama_barang: nama, jenis_barang: jenis, kondisi, stok, satuan })
+                    body: JSON.stringify({ id, nama_barang: nama, jenis_barang: jenis, kondisi, stok, satuan })
                 });
                 const result = await res.json();
                 if (result.success) {
@@ -1519,6 +1701,7 @@
             document.getElementById('section-form').classList.add('hidden');
             document.getElementById('section-master-barang').classList.add('hidden');
             document.getElementById('section-history').classList.add('hidden');
+            document.getElementById('section-akun').classList.add('hidden');
 
             const inactiveStyle = "px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2 whitespace-nowrap";
             const activeStyle = "px-4 py-2.5 text-sm font-semibold border-b-2 border-emerald-600 text-emerald-800 flex items-center gap-2 whitespace-nowrap";
@@ -1528,6 +1711,7 @@
             document.getElementById('tab-form').className = inactiveStyle;
             document.getElementById('tab-master-barang').className = inactiveStyle;
             document.getElementById('tab-history').className = inactiveStyle;
+            document.getElementById('tab-akun').className = inactiveStyle;
 
             if (tab === 'dashboard') {
                 document.getElementById('section-dashboard').classList.remove('hidden');
@@ -1544,6 +1728,10 @@
             } else if (tab === 'history') {
                 document.getElementById('section-history').classList.remove('hidden');
                 document.getElementById('tab-history').className = activeStyle;
+            } else if (tab === 'akun') {
+                document.getElementById('section-akun').classList.remove('hidden');
+                document.getElementById('tab-akun').className = activeStyle;
+                if (sessionStorage.getItem('sipintar_role') === 'admin') loadAccounts();
             }
         }
     </script>

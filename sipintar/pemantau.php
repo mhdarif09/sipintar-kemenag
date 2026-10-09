@@ -98,6 +98,9 @@
                 <button onclick="switchTab('master_barang')" id="tab-master-barang" class="px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2 whitespace-nowrap">
                     <i data-lucide="package" class="w-4 h-4"></i> Data Stok Barang
                 </button>
+                <button onclick="switchTab('akun')" id="tab-akun" class="px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="key-round" class="w-4 h-4"></i> Akun Saya
+                </button>
             </div>
 
             <!-- SECTION 0: DASHBOARD STATISTIK -->
@@ -272,6 +275,18 @@
                 </div>
             </section>
 
+            <section id="section-akun" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <div class="mb-6 pb-4 border-b">
+                    <h2 class="text-base font-bold text-slate-800">Akun Saya</h2>
+                    <p class="text-xs text-slate-500">Ubah password akun pemantau Anda.</p>
+                </div>
+                <form id="form-ubah-password" onsubmit="handleChangeOwnPassword(event)" class="max-w-md space-y-4">
+                    <div><label class="block text-xs font-semibold text-slate-600 mb-1">Password saat ini</label><input id="password-saat-ini" type="password" required autocomplete="current-password" class="w-full px-3 py-2 border rounded-lg text-sm"></div>
+                    <div><label class="block text-xs font-semibold text-slate-600 mb-1">Password baru (minimal 4 karakter)</label><input id="password-baru" type="password" required minlength="4" autocomplete="new-password" class="w-full px-3 py-2 border rounded-lg text-sm"></div>
+                    <button type="submit" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-lg text-sm font-semibold">Ubah Password</button>
+                </form>
+            </section>
+
         </main>
     </div>
 
@@ -279,6 +294,7 @@
     <script>
         let rawTransaksiData = [];
         let masterBarangList = [];
+        let showAllCriticalStock = false;
 
         document.addEventListener('DOMContentLoaded', async () => {
             if (window.lucide) lucide.createIcons();
@@ -306,6 +322,7 @@
                 if (result.success) {
                     if (result.role !== 'pemantau') {
                         alert('Akun ini bukan akun dengan hak akses Pemantau!');
+                        await fetch('api.php?action=logout');
                         return;
                     }
                     sessionStorage.setItem('sipintar_pemantau_logged_in', 'true');
@@ -332,9 +349,26 @@
             switchTab('dashboard');
         }
 
-        function handleLogout() {
+        async function handleLogout() {
+            try { await fetch('api.php?action=logout'); } catch (err) {}
             sessionStorage.removeItem('sipintar_pemantau_logged_in');
             location.reload();
+        }
+
+        async function handleChangeOwnPassword(e) {
+            e.preventDefault();
+            try {
+                const res = await fetch('api.php?action=change_own_password', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        current_password: document.getElementById('password-saat-ini').value,
+                        new_password: document.getElementById('password-baru').value
+                    })
+                });
+                const result = await res.json();
+                alert(result.message);
+                if (result.success) document.getElementById('form-ubah-password').reset();
+            } catch (err) { alert('Gagal mengubah password.'); }
         }
 
         async function loadMasterBarang() {
@@ -411,7 +445,8 @@
                     </div>
                 `;
             } else {
-                kritis.forEach(b => {
+                const daftarTampil = showAllCriticalStock ? kritis : kritis.slice(0, 1);
+                daftarTampil.forEach(b => {
                     const statusClass = b.stok == 0 ? 'bg-rose-50 border-rose-300 text-rose-800' : 'bg-amber-50 border-amber-300 text-amber-800';
                     const badgeClass = b.stok == 0 ? 'bg-rose-600 text-white' : 'bg-amber-500 text-white';
                     const statusText = b.stok == 0 ? 'STOK HABIS' : 'STOK TIPIS';
@@ -433,6 +468,20 @@
                     `;
                     alertContainer.appendChild(div);
                 });
+
+                if (kritis.length > 1) {
+                    const toggleButton = document.createElement('button');
+                    toggleButton.type = 'button';
+                    toggleButton.className = 'text-xs font-semibold text-emerald-700 hover:text-emerald-900 hover:underline';
+                    toggleButton.textContent = showAllCriticalStock
+                        ? 'Tampilkan lebih sedikit'
+                        : `Lihat semua ${kritis.length} barang kritis`;
+                    toggleButton.addEventListener('click', () => {
+                        showAllCriticalStock = !showAllCriticalStock;
+                        renderDashboardWidgets();
+                    });
+                    alertContainer.appendChild(toggleButton);
+                }
             }
 
             const recentTbody = document.getElementById('dash-recent-table-body');
@@ -687,6 +736,7 @@
             document.getElementById('section-dashboard').classList.add('hidden');
             document.getElementById('section-history').classList.add('hidden');
             document.getElementById('section-master-barang').classList.add('hidden');
+            document.getElementById('section-akun').classList.add('hidden');
 
             const inactiveStyle = "px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2 whitespace-nowrap";
             const activeStyle = "px-4 py-2.5 text-sm font-semibold border-b-2 border-emerald-600 text-emerald-800 flex items-center gap-2 whitespace-nowrap";
@@ -694,6 +744,7 @@
             document.getElementById('tab-dashboard').className = inactiveStyle;
             document.getElementById('tab-history').className = inactiveStyle;
             document.getElementById('tab-master-barang').className = inactiveStyle;
+            document.getElementById('tab-akun').className = inactiveStyle;
 
             if (tab === 'dashboard') {
                 document.getElementById('section-dashboard').classList.remove('hidden');
@@ -704,6 +755,9 @@
             } else if (tab === 'master_barang') {
                 document.getElementById('section-master-barang').classList.remove('hidden');
                 document.getElementById('tab-master-barang').className = activeStyle;
+            } else if (tab === 'akun') {
+                document.getElementById('section-akun').classList.remove('hidden');
+                document.getElementById('tab-akun').className = activeStyle;
             }
         }
     </script>
