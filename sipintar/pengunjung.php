@@ -105,7 +105,7 @@
             
             let options = '<option value="">-- Pilih Barang --</option>';
             masterBarangList.forEach(b => {
-                options += `<option value="${b.nama_barang}" data-satuan="${b.satuan}" data-stok="${b.stok}">${b.nama_barang} [Jenis: ${b.jenis_barang}] (Stok: ${b.stok} ${b.satuan})</option>`;
+                options += `<option value="${b.nama_barang}" data-satuan="${b.satuan}" data-stok="${b.stok}">${b.nama_barang}</option>`;
             });
 
             tr.innerHTML = `
@@ -212,5 +212,9 @@
             }
         }
     </script>
+    <footer class="max-w-3xl mx-auto py-5 text-center text-xs text-slate-500">
+        <p>&copy; 2026 MAN 1 Palembang</p>
+        <p class="mt-1">dikembangkan oleh muthic</p>
+    </footer>
 </body>
 </html>

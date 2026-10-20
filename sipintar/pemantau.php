@@ -761,5 +761,9 @@
             }
         }
     </script>
+    <footer class="max-w-7xl mx-auto px-4 py-6 text-center text-xs text-slate-500">
+        <p>&copy; 2026 MAN 1 Palembang</p>
+        <p class="mt-1">dikembangkan oleh muthic</p>
+    </footer>
 </body>
 </html>
