@@ -217,6 +217,6 @@
         <a href="index.php" class="flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-800"><i data-lucide="layout-dashboard" class="h-4 w-4"></i>Halaman Utama</a>
         <a href="pemantau.php" class="flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-800"><i data-lucide="chart-no-axes-combined" class="h-4 w-4"></i>Pemantau</a>
     </nav>
-    <footer class="max-w-3xl mx-auto py-5 pb-20 text-center text-xs leading-5 text-slate-500">© 2026 MAN 1 Palembang<br><span class="font-medium">dikembangkan oleh informuth</span></footer>
+    <footer class="max-w-3xl mx-auto py-5 pb-20 text-center text-xs leading-5 text-slate-500">MANDev © 2026 MAN 1 Palembang</footer>
 </body>
 </html>

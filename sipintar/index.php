@@ -320,6 +320,20 @@
                     </div>
                 </div>
 
+                <div class="flex flex-wrap items-end gap-3 mb-4">
+                    <div>
+                        <label for="barang-filter-stok" class="block text-xs font-semibold text-slate-600 mb-1">Status stok</label>
+                        <select id="barang-filter-stok" onchange="renderTableBarang()" class="px-3 py-2 border rounded-lg text-xs bg-white">
+                            <option value="">Semua barang</option>
+                            <option value="habis">Stok habis</option>
+                            <option value="tersedia">Stok tersedia</option>
+                        </select>
+                    </div>
+                    <button onclick="cetakLaporanMasterBarang()" class="bg-rose-700 hover:bg-rose-800 text-white px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow transition">
+                        <i data-lucide="printer" class="w-4 h-4"></i> Cetak Laporan
+                    </button>
+                </div>
+
                 <div class="overflow-x-auto border rounded-lg">
                     <table class="w-full text-sm text-left">
                         <thead class="bg-slate-100 border-b text-xs font-semibold text-slate-600">
@@ -835,12 +849,18 @@
             const tbody = document.getElementById('barang-table-body');
             tbody.innerHTML = '';
 
-            if (masterBarangList.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-xs text-slate-400">Belum ada data barang. Silakan unggah Excel atau tambah manual.</td></tr>`;
+            const statusStok = document.getElementById('barang-filter-stok').value;
+            const filtered = masterBarangList.filter(b => {
+                const cocokStok = !statusStok || (statusStok === 'habis' ? Number(b.stok) <= 0 : Number(b.stok) > 0);
+                return cocokStok;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-xs text-slate-400">Tidak ada barang yang sesuai dengan filter.</td></tr>`;
                 return;
             }
 
-            masterBarangList.forEach((b, index) => {
+            filtered.forEach((b, index) => {
                 const tr = document.createElement('tr');
                 tr.className = "border-b text-xs hover:bg-slate-50";
                 tr.innerHTML = `
@@ -865,6 +885,25 @@
             });
 
             if (window.lucide) lucide.createIcons();
+        }
+
+        function cetakLaporanMasterBarang() {
+            if (!window.jspdf) { alert('Komponen PDF belum tersedia.'); return; }
+            const statusStok = document.getElementById('barang-filter-stok').value;
+            const rows = masterBarangList.filter(b => {
+                const cocokStok = !statusStok || (statusStok === 'habis' ? Number(b.stok) <= 0 : Number(b.stok) > 0);
+                return cocokStok;
+            });
+            if (!rows.length) { alert('Tidak ada data barang sesuai filter untuk dicetak.'); return; }
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const statusLabel = statusStok === 'habis' ? 'Stok habis' : statusStok === 'tersedia' ? 'Stok tersedia' : 'Semua status stok';
+            doc.setFontSize(14);
+            doc.text('Laporan Master Barang', 14, 16);
+            doc.setFontSize(10);
+            doc.text(`Status: ${statusLabel}`, 14, 23);
+            doc.autoTable({ startY: 29, head: [['No.', 'Kode', 'Nama Barang', 'Jenis', 'Kondisi', 'Stok', 'Satuan', 'Terakhir Diubah']], body: rows.map((b, i) => [i + 1, b.kode_barang || '-', b.nama_barang, b.jenis_barang, b.kondisi || 'Baik', b.stok, b.satuan, b.updated_at ? new Date(b.updated_at.replace(' ', 'T')).toLocaleDateString('id-ID') : '-']), theme: 'grid', styles: { fontSize: 8 } });
+            doc.save('laporan_master_barang.pdf');
         }
 
         // --- DASHBOARD RENDER LOGIC ---
@@ -1811,6 +1850,6 @@
             document.getElementById('tab-akun').classList.toggle('hidden', !['admin', 'pegawai'].includes(sessionStorage.getItem('sipintar_role')));
         }
     </script>
-    <footer class="py-5 text-center text-xs leading-5 text-slate-500">© 2026 MAN 1 Palembang<br><span class="font-medium">dikembangkan oleh informuth</span></footer>
+    <footer class="py-5 text-center text-xs leading-5 text-slate-500">MANDev © 2026 MAN 1 Palembang</footer>
 </body>
 </html>

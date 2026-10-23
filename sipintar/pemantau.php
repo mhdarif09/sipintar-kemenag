@@ -784,6 +784,6 @@
             }
         }
     </script>
-    <footer class="py-5 text-center text-xs leading-5 text-slate-500">© 2026 MAN 1 Palembang<br><span class="font-medium">dikembangkan oleh informuth</span></footer>
+    <footer class="py-5 text-center text-xs leading-5 text-slate-500">MANDev © 2026 MAN 1 Palembang</footer>
 </body>
 </html>
