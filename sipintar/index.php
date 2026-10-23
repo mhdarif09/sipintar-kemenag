@@ -314,6 +314,9 @@
                         <button onclick="openExcelModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow transition">
                             <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> Upload Excel
                         </button>
+                        <button onclick="exportMasterBarangExcel()" class="bg-sky-700 hover:bg-sky-800 text-white px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow transition">
+                            <i data-lucide="download" class="w-4 h-4"></i> Export Excel
+                        </button>
                         <button onclick="openBarangModal()" class="bg-emerald-800 hover:bg-emerald-900 text-white px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow transition">
                             <i data-lucide="plus" class="w-4 h-4"></i> Tambah Barang
                         </button>
@@ -909,6 +912,22 @@
             doc.text(`Status: ${statusLabel}`, 14, 23);
             doc.autoTable({ startY: 29, head: [['No.', 'Kode', 'Nama Barang', 'Jenis', 'Kondisi', 'Stok', 'Satuan', 'Terakhir Diubah']], body: rows.map((b, i) => [i + 1, b.kode_barang || '-', b.nama_barang, b.jenis_barang, b.kondisi || 'Baik', b.stok, b.satuan, b.updated_at ? new Date(b.updated_at.replace(' ', 'T')).toLocaleDateString('id-ID') : '-']), theme: 'grid', styles: { fontSize: 8 } });
             doc.save('laporan_master_barang.pdf');
+        }
+
+        function exportMasterBarangExcel() {
+            if (!window.XLSX) { alert('Komponen Excel belum tersedia.'); return; }
+            if (!masterBarangList.length) { alert('Belum ada data master barang untuk diekspor.'); return; }
+            const rows = masterBarangList.map(barang => ({
+                nama_barang: barang.nama_barang,
+                jenis_barang: barang.jenis_barang,
+                stok: Number(barang.stok),
+                satuan: barang.satuan
+            }));
+            const worksheet = XLSX.utils.json_to_sheet(rows);
+            worksheet['!cols'] = [{ wch: 32 }, { wch: 22 }, { wch: 12 }, { wch: 14 }];
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Master Barang');
+            XLSX.writeFile(workbook, `backup_master_barang_${new Date().toISOString().slice(0, 10)}.xlsx`);
         }
 
         // --- DASHBOARD RENDER LOGIC ---
