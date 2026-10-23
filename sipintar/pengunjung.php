@@ -69,6 +69,12 @@
                 <textarea id="keterangan" rows="2" placeholder="Catatan atau sumber barang..." class="w-full px-3 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
             </div>
 
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-2">Tanda Tangan Penerima <span class="text-rose-600">(Wajib)</span></label>
+                <canvas id="visitor-signature" width="600" height="180" class="w-full h-36 border border-slate-300 rounded-lg bg-white touch-none"></canvas>
+                <button type="button" onclick="clearVisitorSignature()" class="mt-1 text-xs text-rose-600 hover:text-rose-800">Hapus tanda tangan</button>
+            </div>
+
             <div class="pt-3 flex justify-end items-center">
                 <button type="submit" class="bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2.5 rounded-lg font-semibold text-sm shadow transition flex items-center gap-2">
                     <i data-lucide="save" class="w-4 h-4"></i> Kirim Formulir Penerimaan
@@ -79,9 +85,28 @@
 
     <script>
         let masterBarangList = [];
+        let signatureDrawing = false;
+
+        function setupVisitorSignature() {
+            const canvas = document.getElementById('visitor-signature'), ctx = canvas.getContext('2d');
+            ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            const point = event => { const rect = canvas.getBoundingClientRect(), source = event.touches ? event.touches[0] : event; return { x: (source.clientX - rect.left) * canvas.width / rect.width, y: (source.clientY - rect.top) * canvas.height / rect.height }; };
+            const start = event => { event.preventDefault(); signatureDrawing = true; const p = point(event); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
+            const move = event => { if (!signatureDrawing) return; event.preventDefault(); const p = point(event); ctx.lineTo(p.x, p.y); ctx.stroke(); };
+            canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove', move); window.addEventListener('mouseup', () => signatureDrawing = false);
+            canvas.addEventListener('touchstart', start, { passive: false }); canvas.addEventListener('touchmove', move, { passive: false }); canvas.addEventListener('touchend', () => signatureDrawing = false);
+        }
+
+        function clearVisitorSignature() { const canvas = document.getElementById('visitor-signature'); canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height); }
+        function getVisitorSignature() {
+            const canvas = document.getElementById('visitor-signature'), pixels = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+            for (let i = 3; i < pixels.length; i += 4) if (pixels[i]) return canvas.toDataURL('image/png');
+            return '';
+        }
 
         document.addEventListener('DOMContentLoaded', async () => {
             if (window.lucide) lucide.createIcons();
+            setupVisitorSignature();
             document.getElementById('tanggal_pengambilan').valueAsDate = new Date();
             await loadMasterBarang();
             addBarangRow();
@@ -176,6 +201,9 @@
 
             if (!stokValid) return;
 
+            const signature = getVisitorSignature();
+            if (!signature) { alert('Tanda tangan penerima wajib diisi.'); return; }
+
             const selectedDate = document.getElementById('tanggal_pengambilan').value;
             const dateStr = selectedDate.replace(/-/g, '');
             const randomNum = Math.floor(100 + Math.random() * 900);
@@ -187,6 +215,7 @@
                 nama_pengambil: document.getElementById('nama_pengambil').value,
                 jabatan_unit: document.getElementById('jabatan_unit').value,
                 keterangan: document.getElementById('keterangan').value,
+                tanda_tangan: signature,
                 items: items
             };
 
@@ -203,6 +232,7 @@
                     document.getElementById('form-pengambilan').reset();
                     document.getElementById('tanggal_pengambilan').valueAsDate = new Date();
                     document.getElementById('table-items-body').innerHTML = '';
+                    clearVisitorSignature();
                     await loadMasterBarang();
                     addBarangRow();
                 } else {

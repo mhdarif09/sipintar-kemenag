@@ -326,6 +326,7 @@
                         <select id="barang-filter-stok" onchange="renderTableBarang()" class="px-3 py-2 border rounded-lg text-xs bg-white">
                             <option value="">Semua barang</option>
                             <option value="habis">Stok habis</option>
+                            <option value="kurang5">Stok &lt; 5</option>
                             <option value="tersedia">Stok tersedia</option>
                         </select>
                     </div>
@@ -362,6 +363,9 @@
                         <p class="text-xs text-slate-500">Rekapitulasi transaksi barang masuk & keluar serta rekap PDF/Excel.</p>
                     </div>
                     <div class="flex flex-wrap items-center gap-2">
+                        <button onclick="exportBuktiPenerimaan()" class="bg-indigo-700 hover:bg-indigo-800 text-white px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow transition">
+                            <i data-lucide="file-down" class="w-4 h-4"></i> Rekap Bukti Penerimaan
+                        </button>
                         <button onclick="exportPDF()" class="bg-rose-700 hover:bg-rose-800 text-white px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow transition">
                             <i data-lucide="file-text" class="w-4 h-4"></i> Cetak PDF
                         </button>
@@ -374,6 +378,7 @@
                     </div>
                 </div>
 
+                <p class="mb-2 text-[11px] text-slate-500">Filter bulan, tahun, dan tipe transaksi di bawah juga diterapkan pada Rekap Bukti Penerimaan.</p>
                 <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-4 bg-slate-50 p-3 rounded-lg border">
                     <div>
                         <label class="block text-[11px] font-semibold text-slate-500 mb-1">Tipe Transaksi</label>
@@ -851,7 +856,7 @@
 
             const statusStok = document.getElementById('barang-filter-stok').value;
             const filtered = masterBarangList.filter(b => {
-                const cocokStok = !statusStok || (statusStok === 'habis' ? Number(b.stok) <= 0 : Number(b.stok) > 0);
+                const cocokStok = !statusStok || (statusStok === 'habis' ? Number(b.stok) <= 0 : statusStok === 'kurang5' ? Number(b.stok) < 5 : Number(b.stok) > 0);
                 return cocokStok;
             });
 
@@ -891,13 +896,13 @@
             if (!window.jspdf) { alert('Komponen PDF belum tersedia.'); return; }
             const statusStok = document.getElementById('barang-filter-stok').value;
             const rows = masterBarangList.filter(b => {
-                const cocokStok = !statusStok || (statusStok === 'habis' ? Number(b.stok) <= 0 : Number(b.stok) > 0);
+                const cocokStok = !statusStok || (statusStok === 'habis' ? Number(b.stok) <= 0 : statusStok === 'kurang5' ? Number(b.stok) < 5 : Number(b.stok) > 0);
                 return cocokStok;
             });
             if (!rows.length) { alert('Tidak ada data barang sesuai filter untuk dicetak.'); return; }
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            const statusLabel = statusStok === 'habis' ? 'Stok habis' : statusStok === 'tersedia' ? 'Stok tersedia' : 'Semua status stok';
+            const statusLabel = statusStok === 'habis' ? 'Stok habis' : statusStok === 'kurang5' ? 'Stok < 5' : statusStok === 'tersedia' ? 'Stok tersedia' : 'Semua status stok';
             doc.setFontSize(14);
             doc.text('Laporan Master Barang', 14, 16);
             doc.setFontSize(10);
@@ -1214,23 +1219,63 @@
             return '';
         }
 
-        function downloadReceiptPdfByCode(kode) {
-            const item = rawTransaksiData.find(t => t.kode_transaksi === kode);
-            if (item) downloadReceiptPdf(item);
+        function getLogoDataUrl() {
+            return new Promise(resolve => {
+                const img = new Image();
+                img.onload = () => { try { const canvas = document.createElement('canvas'); canvas.width = img.naturalWidth; canvas.height = img.naturalHeight; canvas.getContext('2d').drawImage(img, 0, 0); resolve(canvas.toDataURL('image/png')); } catch (e) { resolve(''); } };
+                img.onerror = () => resolve('');
+                img.src = 'logo.png';
+            });
         }
 
-        function downloadReceiptPdf(transaction) {
+        async function downloadReceiptPdfByCode(kode) {
+            const item = rawTransaksiData.find(t => t.kode_transaksi === kode);
+            if (item) await downloadReceiptPdf(item);
+        }
+
+        async function downloadReceiptPdf(transaction) {
             if (!window.jspdf) { alert('Komponen PDF belum tersedia.'); return; }
             const { jsPDF } = window.jspdf, doc = new jsPDF(), masuk = (transaction.tipe || 'KELUAR') === 'MASUK';
-            doc.setFontSize(16); doc.setFont('helvetica', 'bold'); doc.text(masuk ? 'BUKTI PENERIMAAN BARANG MASUK' : 'BUKTI PENERIMAAN BARANG', 105, 20, { align: 'center' });
-            doc.setFontSize(10); doc.setFont('helvetica', 'normal'); doc.text('SIPINTAR - MAN 1 Palembang', 105, 27, { align: 'center' }); doc.line(15, 32, 195, 32);
-            doc.text(`Kode Transaksi: ${transaction.kode_transaksi}`, 15, 42); doc.text(`Tanggal: ${transaction.tanggal_pengambilan}`, 15, 49);
-            doc.text(`${masuk ? 'Petugas Penerima' : 'Nama Penerima'}: ${transaction.nama_pengambil}`, 15, 56); doc.text(`${masuk ? 'Unit' : 'Jabatan'}: ${transaction.jabatan_unit || '-'}`, 15, 63);
-            if (transaction.keterangan) doc.text(`Keperluan: ${transaction.keterangan}`, 15, 70, { maxWidth: 175 });
-            doc.autoTable({ startY: transaction.keterangan ? 78 : 72, head: [['No.', 'Nama Barang', 'Jumlah', 'Satuan']], body: (transaction.items || []).map((i, n) => [n + 1, i.nama_barang, i.jumlah, i.satuan]), theme: 'grid', styles: { fontSize: 10 } });
+            const logo = await getLogoDataUrl(); if (logo) doc.addImage(logo, 'PNG', 94, 5, 22, 22);
+            doc.setFontSize(16); doc.setFont('helvetica', 'bold'); doc.text(masuk ? 'BUKTI PENERIMAAN BARANG MASUK' : 'BUKTI PENERIMAAN BARANG', 105, 34, { align: 'center' });
+            doc.setFontSize(10); doc.setFont('helvetica', 'normal'); doc.text('SIPINTAR - MAN 1 Palembang', 105, 41, { align: 'center' }); doc.line(15, 46, 195, 46);
+            doc.text(`Kode Transaksi: ${transaction.kode_transaksi}`, 15, 56); doc.text(`Tanggal: ${transaction.tanggal_pengambilan}`, 15, 63);
+            doc.text(`${masuk ? 'Petugas Penerima' : 'Nama Penerima'}: ${transaction.nama_pengambil}`, 15, 70); doc.text(`${masuk ? 'Unit' : 'Jabatan'}: ${transaction.jabatan_unit || '-'}`, 15, 77);
+            if (transaction.keterangan) doc.text(`Keperluan: ${transaction.keterangan}`, 15, 84, { maxWidth: 175 });
+            doc.autoTable({ startY: transaction.keterangan ? 92 : 86, head: [['No.', 'Nama Barang', 'Jumlah', 'Satuan']], body: (transaction.items || []).map((i, n) => [n + 1, i.nama_barang, i.jumlah, i.satuan]), theme: 'grid', styles: { fontSize: 10 } });
             let y = doc.lastAutoTable.finalY + 15;
             if (transaction.tanda_tangan) { if (y > 235) { doc.addPage(); y = 25; } doc.text('Penerima,', 145, y, { align: 'center' }); try { doc.addImage(transaction.tanda_tangan, 'PNG', 120, y + 3, 50, 25); } catch (e) {} doc.text(transaction.nama_pengambil || '', 145, y + 34, { align: 'center' }); }
             doc.save(`Bukti_Penerimaan_${transaction.kode_transaksi}.pdf`);
+        }
+
+        async function exportBuktiPenerimaan() {
+            const signed = getFilteredData().filter(item => item.tanda_tangan);
+            if (!signed.length) { alert('Tidak ada bukti penerimaan bertanda tangan yang sesuai filter.'); return; }
+            if (!window.jspdf) { alert('Komponen PDF belum tersedia.'); return; }
+            const { jsPDF } = window.jspdf, doc = new jsPDF(), logo = await getLogoDataUrl();
+            const filterTipe = document.getElementById('filter-tipe').value;
+            const filterBulan = document.getElementById('filter-bulan');
+            const filterTahun = document.getElementById('filter-tahun').value.trim();
+            const labelTipe = filterTipe === 'MASUK' ? 'Barang Masuk' : filterTipe === 'KELUAR' ? 'Barang Keluar' : 'Semua Transaksi';
+            const labelBulan = filterBulan.value ? filterBulan.options[filterBulan.selectedIndex].text : 'Semua Bulan';
+            const labelPeriode = `${labelBulan}${filterTahun ? ` ${filterTahun}` : ''}`;
+            signed.forEach((transaction, index) => {
+                if (index > 0) doc.addPage();
+                const masuk = (transaction.tipe || 'KELUAR') === 'MASUK';
+                if (logo) doc.addImage(logo, 'PNG', 94, 5, 22, 22);
+                doc.setFontSize(16); doc.setFont('helvetica', 'bold'); doc.text(masuk ? 'BUKTI PENERIMAAN BARANG MASUK' : 'BUKTI PENERIMAAN BARANG', 105, 34, { align: 'center' });
+                doc.setFontSize(10); doc.setFont('helvetica', 'normal'); doc.text('SIPINTAR - MAN 1 Palembang', 105, 41, { align: 'center' });
+                doc.setFontSize(9); doc.text(`${labelPeriode} - ${labelTipe}`, 105, 48, { align: 'center' }); doc.line(15, 54, 195, 54);
+                doc.setFontSize(10); doc.text(`Kode Transaksi: ${transaction.kode_transaksi}`, 15, 64); doc.text(`Tanggal: ${transaction.tanggal_pengambilan}`, 15, 71);
+                doc.text(`${masuk ? 'Petugas Penerima' : 'Nama Penerima'}: ${transaction.nama_pengambil}`, 15, 78); doc.text(`${masuk ? 'Unit' : 'Jabatan'}: ${transaction.jabatan_unit || '-'}`, 15, 85);
+                if (transaction.keterangan) doc.text(`Keperluan: ${transaction.keterangan}`, 15, 92, { maxWidth: 175 });
+                doc.autoTable({ startY: transaction.keterangan ? 100 : 94, head: [['No.', 'Nama Barang', 'Jumlah', 'Satuan']], body: (transaction.items || []).map((item, i) => [i + 1, item.nama_barang, item.jumlah, item.satuan]), theme: 'grid', styles: { fontSize: 10 } });
+                let y = doc.lastAutoTable.finalY + 15; if (y > 235) { doc.addPage(); y = 25; }
+                doc.text('Penerima,', 145, y, { align: 'center' });
+                try { doc.addImage(transaction.tanda_tangan, 'PNG', 120, y + 3, 50, 25); } catch (error) {}
+                doc.text(transaction.nama_pengambil || '', 145, y + 34, { align: 'center' });
+            });
+            doc.save('Rekap_Bukti_Penerimaan.pdf');
         }
 
         async function handleSaveBarangMasuk(e) {
