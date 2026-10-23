@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Form Penerimaan Barang - SIPINTAR</title>
+    <link rel="icon" type="image/png" href="logo.png">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -212,9 +213,10 @@
             }
         }
     </script>
-    <footer class="max-w-3xl mx-auto py-5 text-center text-xs text-slate-500">
-        <p>&copy; 2026 MAN 1 Palembang</p>
-        <p class="mt-1">dikembangkan oleh muthic</p>
-    </footer>
+    <nav aria-label="Navigasi halaman" class="fixed bottom-3 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-2xl border border-white/70 bg-white/90 p-2 shadow-2xl shadow-emerald-950/20 backdrop-blur-xl">
+        <a href="index.php" class="flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-800"><i data-lucide="layout-dashboard" class="h-4 w-4"></i>Halaman Utama</a>
+        <a href="pemantau.php" class="flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-800"><i data-lucide="chart-no-axes-combined" class="h-4 w-4"></i>Pemantau</a>
+    </nav>
+    <footer class="max-w-3xl mx-auto py-5 pb-20 text-center text-xs leading-5 text-slate-500">© 2026 MAN 1 Palembang<br><span class="font-medium">dikembangkan oleh informuth</span></footer>
 </body>
 </html>

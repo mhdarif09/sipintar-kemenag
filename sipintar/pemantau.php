@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SIPINTAR - Mode Pemantau</title>
+    <link rel="icon" type="image/png" href="logo.png">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -88,15 +89,15 @@
         <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
             
             <!-- TAB NAVIGATION -->
-            <div class="flex border-b border-slate-200 gap-2 overflow-x-auto">
+            <div class="-mx-4 -mt-6 mb-6 flex max-w-none items-center gap-1 overflow-x-auto border-b border-slate-200 bg-slate-100 px-4 pt-4 shadow-none">
                 <button onclick="switchTab('dashboard')" id="tab-dashboard" class="px-4 py-2.5 text-sm font-semibold border-b-2 border-emerald-600 text-emerald-800 flex items-center gap-2 whitespace-nowrap">
                     <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Dashboard
                 </button>
                 <button onclick="switchTab('history')" id="tab-history" class="px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2 whitespace-nowrap">
-                    <i data-lucide="history" class="w-4 h-4"></i> Riwayat & Laporan Inventaris
+                    <i data-lucide="chart-no-axes-column" class="w-4 h-4"></i> Laporan
                 </button>
                 <button onclick="switchTab('master_barang')" id="tab-master-barang" class="px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2 whitespace-nowrap">
-                    <i data-lucide="package" class="w-4 h-4"></i> Data Stok Barang
+                    <i data-lucide="package" class="w-4 h-4"></i> Master Barang
                 </button>
                 <button onclick="switchTab('akun')" id="tab-akun" class="px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2 whitespace-nowrap">
                     <i data-lucide="key-round" class="w-4 h-4"></i> Akun Saya
@@ -243,6 +244,7 @@
                                 <th class="p-3">Penerima / Petugas</th>
                                 <th class="p-3">Rincian Barang</th>
                                 <th class="p-3">Keterangan</th>
+                                <th class="p-3">Bukti</th>
                             </tr>
                         </thead>
                         <tbody id="history-table-body"></tbody>
@@ -299,7 +301,8 @@
         document.addEventListener('DOMContentLoaded', async () => {
             if (window.lucide) lucide.createIcons();
 
-            const isLoggedIn = sessionStorage.getItem('sipintar_pemantau_logged_in') === 'true';
+            const isLoggedIn = sessionStorage.getItem('sipintar_pemantau_logged_in') === 'true'
+                && sessionStorage.getItem('sipintar_role') === 'pemantau';
 
             if (isLoggedIn) {
                 showDashboard();
@@ -326,7 +329,11 @@
                         return;
                     }
                     sessionStorage.setItem('sipintar_pemantau_logged_in', 'true');
+                    sessionStorage.setItem('sipintar_logged_in', 'true');
+                    sessionStorage.setItem('sipintar_role', result.role);
+                    sessionStorage.setItem('sipintar_user_id', result.id);
                     sessionStorage.setItem('sipintar_user', result.nama);
+                    sessionStorage.setItem('sipintar_username', result.username);
                     
                     showDashboard();
                 } else {
@@ -351,7 +358,7 @@
 
         async function handleLogout() {
             try { await fetch('api.php?action=logout'); } catch (err) {}
-            sessionStorage.removeItem('sipintar_pemantau_logged_in');
+            sessionStorage.clear();
             location.reload();
         }
 
@@ -549,7 +556,7 @@
             tbody.innerHTML = '';
 
             if (filtered.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-xs text-slate-400">Tidak ada data transaksi yang cocok dengan filter.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-xs text-slate-400">Tidak ada data transaksi yang cocok dengan filter.</td></tr>`;
                 return;
             }
 
@@ -574,9 +581,25 @@
                     <td class="p-3"><strong>${item.nama_pengambil}</strong><br><span class="text-[10px] text-slate-500">${pihakSubtext}: ${item.jabatan_unit}</span></td>
                     <td class="p-3">${barangList}</td>
                     <td class="p-3 text-slate-500">${item.keterangan || '-'}</td>
+                    <td class="p-3 text-center"><button onclick="downloadReceiptPdfByCode('${item.kode_transaksi}')" class="text-rose-600 hover:text-rose-800 p-1" title="Unduh bukti penerimaan PDF"><i data-lucide="file-down" class="w-4 h-4"></i></button></td>
                 `;
                 tbody.appendChild(tr);
             });
+        }
+
+        function downloadReceiptPdfByCode(kode) {
+            const transaction = rawTransaksiData.find(item => item.kode_transaksi === kode);
+            if (!transaction) return;
+            const { jsPDF } = window.jspdf, doc = new jsPDF(), masuk = (transaction.tipe || 'KELUAR') === 'MASUK';
+            doc.setFontSize(16); doc.setFont('helvetica', 'bold'); doc.text(masuk ? 'BUKTI PENERIMAAN BARANG MASUK' : 'BUKTI PENERIMAAN BARANG', 105, 20, { align: 'center' });
+            doc.setFontSize(10); doc.setFont('helvetica', 'normal'); doc.text('SIPINTAR - MAN 1 Palembang', 105, 27, { align: 'center' }); doc.line(15, 32, 195, 32);
+            doc.text(`Kode Transaksi: ${transaction.kode_transaksi}`, 15, 42); doc.text(`Tanggal: ${transaction.tanggal_pengambilan}`, 15, 49);
+            doc.text(`${masuk ? 'Petugas Penerima' : 'Nama Penerima'}: ${transaction.nama_pengambil}`, 15, 56); doc.text(`${masuk ? 'Unit' : 'Jabatan'}: ${transaction.jabatan_unit || '-'}`, 15, 63);
+            if (transaction.keterangan) doc.text(`Keperluan: ${transaction.keterangan}`, 15, 70, { maxWidth: 175 });
+            doc.autoTable({ startY: transaction.keterangan ? 78 : 72, head: [['No.', 'Nama Barang', 'Jumlah', 'Satuan']], body: (transaction.items || []).map((item, index) => [index + 1, item.nama_barang, item.jumlah, item.satuan]), theme: 'grid', styles: { fontSize: 10 } });
+            let y = doc.lastAutoTable.finalY + 15;
+            if (transaction.tanda_tangan) { if (y > 235) { doc.addPage(); y = 25; } doc.text('Penerima,', 145, y, { align: 'center' }); try { doc.addImage(transaction.tanda_tangan, 'PNG', 120, y + 3, 50, 25); } catch (error) {} doc.text(transaction.nama_pengambil || '', 145, y + 34, { align: 'center' }); }
+            doc.save(`Bukti_Penerimaan_${transaction.kode_transaksi}.pdf`);
         }
 
         function exportPDF() {
@@ -761,9 +784,6 @@
             }
         }
     </script>
-    <footer class="max-w-7xl mx-auto px-4 py-6 text-center text-xs text-slate-500">
-        <p>&copy; 2026 MAN 1 Palembang</p>
-        <p class="mt-1">dikembangkan oleh muthic</p>
-    </footer>
+    <footer class="py-5 text-center text-xs leading-5 text-slate-500">© 2026 MAN 1 Palembang<br><span class="font-medium">dikembangkan oleh informuth</span></footer>
 </body>
 </html>

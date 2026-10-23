@@ -56,6 +56,10 @@ $checkCol = $conn->query("SHOW COLUMNS FROM transaksi LIKE 'tipe'");
 if ($checkCol && $checkCol->num_rows == 0) {
     $conn->query("ALTER TABLE transaksi ADD COLUMN tipe ENUM('MASUK', 'KELUAR') NOT NULL DEFAULT 'KELUAR' AFTER kode_transaksi");
 }
+$checkSignature = $conn->query("SHOW COLUMNS FROM transaksi LIKE 'tanda_tangan'");
+if ($checkSignature && $checkSignature->num_rows === 0) {
+    $conn->query("ALTER TABLE transaksi ADD COLUMN tanda_tangan MEDIUMTEXT NULL AFTER keterangan");
+}
 
 $conn->query("CREATE TABLE IF NOT EXISTS transaksi_detail (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -367,6 +371,7 @@ if ($action === 'simpan_transaksi') {
     $pengambil= $conn->real_escape_string($input['nama_pengambil'] ?? '');
     $jabatan  = $conn->real_escape_string($input['jabatan_unit'] ?? '');
     $ket      = $conn->real_escape_string($input['keterangan'] ?? '');
+    $signature = $conn->real_escape_string($input['tanda_tangan'] ?? '');
     $items    = $input['items'] ?? [];
 
     if (empty($kode) || empty($tanggal) || empty($items)) {
@@ -377,8 +382,8 @@ if ($action === 'simpan_transaksi') {
     $conn->begin_transaction();
 
     try {
-        $sqlHead = "INSERT INTO transaksi (kode_transaksi, tipe, tanggal_pengambilan, nama_pengambil, jabatan_unit, keterangan) 
-                    VALUES ('$kode', '$tipe', '$tanggal', '$pengambil', '$jabatan', '$ket')";
+        $sqlHead = "INSERT INTO transaksi (kode_transaksi, tipe, tanggal_pengambilan, nama_pengambil, jabatan_unit, keterangan, tanda_tangan) 
+                    VALUES ('$kode', '$tipe', '$tanggal', '$pengambil', '$jabatan', '$ket', '$signature')";
         if (!$conn->query($sqlHead)) {
             throw new Exception($conn->error);
         }

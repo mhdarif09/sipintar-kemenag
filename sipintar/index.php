@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SIPINTAR - MAN 1 Palembang</title>
+    <link rel="icon" type="image/png" href="logo.png">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -87,21 +88,21 @@
         <!-- MAIN CONTAINER -->
         <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
             <!-- TAB NAVIGATION -->
-            <div id="main-tabs" class="flex border-b border-slate-200 gap-2 overflow-x-auto">
+            <div id="main-tabs" class="-mx-4 -mt-6 mb-6 flex max-w-none items-center gap-1 overflow-x-auto border-b border-slate-200 bg-slate-100 px-4 pt-4 shadow-none">
                 <button onclick="switchTab('dashboard')" id="tab-dashboard" class="px-4 py-2.5 text-sm font-semibold border-b-2 border-emerald-600 text-emerald-800 flex items-center gap-2 whitespace-nowrap">
                     <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Dashboard
                 </button>
                 <button onclick="switchTab('barang_masuk')" id="tab-barang-masuk" class="px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2 whitespace-nowrap">
-                    <i data-lucide="arrow-down-left" class="w-4 h-4"></i> Barang Masuk (Restok)
+                    <i data-lucide="corner-left-down" class="w-4 h-4"></i> Barang Masuk (Restok)
                 </button>
                 <button onclick="switchTab('form')" id="tab-form" class="px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2 whitespace-nowrap">
-                    <i data-lucide="arrow-up-right" class="w-4 h-4"></i> Form Penerimaan (Keluar)
+                    <i data-lucide="corner-right-up" class="w-4 h-4"></i> Form Penerimaan (Keluar)
                 </button>
                 <button onclick="switchTab('master_barang')" id="tab-master-barang" class="px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2 whitespace-nowrap">
                     <i data-lucide="package" class="w-4 h-4"></i> Data Master Barang
                 </button>
                 <button onclick="switchTab('history')" id="tab-history" class="px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2 whitespace-nowrap">
-                    <i data-lucide="history" class="w-4 h-4"></i> Riwayat & Laporan
+                    <i data-lucide="history" class="w-4 h-4"></i> Riwayat &amp; Laporan
                 </button>
                 <button onclick="switchTab('akun')" id="tab-akun" class="px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2 whitespace-nowrap">
                     <i data-lucide="users" class="w-4 h-4"></i> Kelola Akun
@@ -110,8 +111,9 @@
 
             <!-- SECTION 0: DASHBOARD STATISTIK -->
             <section id="section-dashboard" class="space-y-6">
+                <h2 class="text-2xl font-bold tracking-tight text-slate-800">Ringkasan Inventaris</h2>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div class="cursor-pointer bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between transition duration-200 hover:-translate-y-1 hover:scale-[1.02] hover:border-emerald-200 hover:shadow-lg">
                         <div>
                             <p class="text-xs text-slate-500 font-medium">Total Jenis Barang</p>
                             <h3 id="dash-total-barang" class="text-2xl font-bold text-slate-800 mt-1">0</h3>
@@ -121,7 +123,7 @@
                         </div>
                     </div>
 
-                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div class="cursor-pointer bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between transition duration-200 hover:-translate-y-1 hover:scale-[1.02] hover:border-emerald-200 hover:shadow-lg">
                         <div>
                             <p class="text-xs text-slate-500 font-medium">Stok Kritis (≤ 5)</p>
                             <h3 id="dash-stok-kritis" class="text-2xl font-bold text-amber-600 mt-1">0</h3>
@@ -131,7 +133,7 @@
                         </div>
                     </div>
 
-                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div class="cursor-pointer bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between transition duration-200 hover:-translate-y-1 hover:scale-[1.02] hover:border-emerald-200 hover:shadow-lg">
                         <div>
                             <p class="text-xs text-slate-500 font-medium">Transaksi Barang Masuk</p>
                             <h3 id="dash-trans-masuk" class="text-2xl font-bold text-emerald-600 mt-1">0</h3>
@@ -141,7 +143,7 @@
                         </div>
                     </div>
 
-                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div class="cursor-pointer bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between transition duration-200 hover:-translate-y-1 hover:scale-[1.02] hover:border-emerald-200 hover:shadow-lg">
                         <div>
                             <p class="text-xs text-slate-500 font-medium">Transaksi Barang Keluar</p>
                             <h3 id="dash-trans-keluar" class="text-2xl font-bold text-rose-600 mt-1">0</h3>
@@ -161,9 +163,12 @@
 
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                     <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
-                            <i data-lucide="clock" class="w-5 h-5 text-emerald-600"></i> Transaksi Terbaru
-                        </h2>
+                        <div>
+                            <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                                <i data-lucide="clock" class="w-5 h-5 text-emerald-600"></i> Daftar Transaksi
+                            </h2>
+                            <p class="mt-1 text-xs text-slate-500">Aktivitas arus masuk dan keluar barang terakhir</p>
+                        </div>
                         <button onclick="switchTab('history')" class="text-xs font-semibold text-emerald-700 hover:text-emerald-800">Lihat Semua →</button>
                     </div>
                     <div class="overflow-x-auto border rounded-lg">
@@ -221,6 +226,12 @@
                         </button>
                     </div>
 
+                    <div class="max-w-xl">
+                        <label class="block text-xs font-semibold text-slate-600 mb-2">Tanda Tangan Petugas Penerima</label>
+                        <canvas id="bm-signature" width="600" height="180" class="w-full h-36 border border-slate-300 rounded-lg bg-white touch-none"></canvas>
+                        <button type="button" onclick="clearSignature('bm-signature')" class="mt-1 text-xs text-rose-600 hover:text-rose-800">Hapus tanda tangan</button>
+                    </div>
+
                     <div class="pt-3 flex justify-end">
                         <button type="submit" class="bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2.5 rounded-lg font-semibold text-sm shadow transition flex items-center gap-2">
                             <i data-lucide="save" class="w-4 h-4"></i> Simpan Barang Masuk
@@ -275,6 +286,12 @@
                         <div>
                             <label class="block text-xs font-semibold text-slate-600 mb-1">Keterangan / Keperluan (Opsional)</label>
                             <textarea id="keterangan" rows="2" placeholder="Catatan atau keperluan barang..." class="w-full px-3 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
+                        </div>
+
+                        <div class="max-w-xl">
+                            <label class="block text-xs font-semibold text-slate-600 mb-2">Tanda Tangan Penerima</label>
+                            <canvas id="bk-signature" width="600" height="180" class="w-full h-36 border border-slate-300 rounded-lg bg-white touch-none"></canvas>
+                            <button type="button" onclick="clearSignature('bk-signature')" class="mt-1 text-xs text-rose-600 hover:text-rose-800">Hapus tanda tangan</button>
                         </div>
 
                         <div class="pt-3 flex justify-end">
@@ -580,6 +597,8 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             if (window.lucide) lucide.createIcons();
+            setupSignaturePad('bm-signature');
+            setupSignaturePad('bk-signature');
             
             const today = new Date();
             document.getElementById('tanggal_pengambilan').valueAsDate = today;
@@ -611,6 +630,12 @@
                     sessionStorage.setItem('sipintar_user', result.nama);
                     sessionStorage.setItem('sipintar_username', result.username);
                     sessionStorage.setItem('sipintar_role', result.role);
+
+                    if (result.role === 'pemantau') {
+                        sessionStorage.setItem('sipintar_pemantau_logged_in', 'true');
+                        window.location.href = 'pemantau.php';
+                        return;
+                    }
                     
                     showDashboard();
                 } else {
@@ -1132,8 +1157,47 @@
             satuanInput.value = selectedOption.getAttribute('data-satuan') || '';
         }
 
+        function setupSignaturePad(id) {
+            const canvas = document.getElementById(id), ctx = canvas.getContext('2d');
+            ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            let drawing = false;
+            const point = event => { const rect = canvas.getBoundingClientRect(), source = event.touches ? event.touches[0] : event; return { x: (source.clientX - rect.left) * canvas.width / rect.width, y: (source.clientY - rect.top) * canvas.height / rect.height }; };
+            const start = event => { event.preventDefault(); drawing = true; const p = point(event); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
+            const move = event => { if (!drawing) return; event.preventDefault(); const p = point(event); ctx.lineTo(p.x, p.y); ctx.stroke(); };
+            canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove', move); window.addEventListener('mouseup', () => drawing = false);
+            canvas.addEventListener('touchstart', start, { passive: false }); canvas.addEventListener('touchmove', move, { passive: false }); canvas.addEventListener('touchend', () => drawing = false);
+        }
+
+        function clearSignature(id) { const canvas = document.getElementById(id); canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height); }
+        function getSignature(id) {
+            const canvas = document.getElementById(id), pixels = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+            for (let i = 3; i < pixels.length; i += 4) if (pixels[i]) return canvas.toDataURL('image/png');
+            return '';
+        }
+
+        function downloadReceiptPdfByCode(kode) {
+            const item = rawTransaksiData.find(t => t.kode_transaksi === kode);
+            if (item) downloadReceiptPdf(item);
+        }
+
+        function downloadReceiptPdf(transaction) {
+            if (!window.jspdf) { alert('Komponen PDF belum tersedia.'); return; }
+            const { jsPDF } = window.jspdf, doc = new jsPDF(), masuk = (transaction.tipe || 'KELUAR') === 'MASUK';
+            doc.setFontSize(16); doc.setFont('helvetica', 'bold'); doc.text(masuk ? 'BUKTI PENERIMAAN BARANG MASUK' : 'BUKTI PENERIMAAN BARANG', 105, 20, { align: 'center' });
+            doc.setFontSize(10); doc.setFont('helvetica', 'normal'); doc.text('SIPINTAR - MAN 1 Palembang', 105, 27, { align: 'center' }); doc.line(15, 32, 195, 32);
+            doc.text(`Kode Transaksi: ${transaction.kode_transaksi}`, 15, 42); doc.text(`Tanggal: ${transaction.tanggal_pengambilan}`, 15, 49);
+            doc.text(`${masuk ? 'Petugas Penerima' : 'Nama Penerima'}: ${transaction.nama_pengambil}`, 15, 56); doc.text(`${masuk ? 'Unit' : 'Jabatan'}: ${transaction.jabatan_unit || '-'}`, 15, 63);
+            if (transaction.keterangan) doc.text(`Keperluan: ${transaction.keterangan}`, 15, 70, { maxWidth: 175 });
+            doc.autoTable({ startY: transaction.keterangan ? 78 : 72, head: [['No.', 'Nama Barang', 'Jumlah', 'Satuan']], body: (transaction.items || []).map((i, n) => [n + 1, i.nama_barang, i.jumlah, i.satuan]), theme: 'grid', styles: { fontSize: 10 } });
+            let y = doc.lastAutoTable.finalY + 15;
+            if (transaction.tanda_tangan) { if (y > 235) { doc.addPage(); y = 25; } doc.text('Penerima,', 145, y, { align: 'center' }); try { doc.addImage(transaction.tanda_tangan, 'PNG', 120, y + 3, 50, 25); } catch (e) {} doc.text(transaction.nama_pengambil || '', 145, y + 34, { align: 'center' }); }
+            doc.save(`Bukti_Penerimaan_${transaction.kode_transaksi}.pdf`);
+        }
+
         async function handleSaveBarangMasuk(e) {
             e.preventDefault();
+            const signature = getSignature('bm-signature');
+            if (!signature) { alert('Tanda tangan petugas penerima wajib diisi.'); return; }
             const rows = document.querySelectorAll('#bm-table-items-body tr');
             if (rows.length === 0) {
                 alert('Tambahkan minimal 1 barang masuk!');
@@ -1162,6 +1226,7 @@
                 nama_pengambil: document.getElementById('bm_petugas').value,
                 jabatan_unit: 'Petugas Inventaris',
                 keterangan: '',
+                tanda_tangan: signature,
                 items: items
             };
 
@@ -1174,11 +1239,13 @@
                 const result = await res.json();
 
                 if (result.success) {
+                    downloadReceiptPdf(payload);
                     alert('Barang masuk berhasil disimpan! Stok telah otomatis bertambah.');
                     document.getElementById('form-barang-masuk').reset();
                     document.getElementById('bm_tanggal').valueAsDate = new Date();
                     document.getElementById('bm_petugas').value = '';
                     document.getElementById('bm-table-items-body').innerHTML = '';
+                    clearSignature('bm-signature');
                     
                     await loadMasterBarang();
                     await loadTransaksiData();
@@ -1240,6 +1307,8 @@
 
         async function handleSaveTransaksi(e) {
             e.preventDefault();
+            const signature = getSignature('bk-signature');
+            if (!signature) { alert('Tanda tangan penerima wajib diisi.'); return; }
             const rows = document.querySelectorAll('#table-items-body tr');
             if (rows.length === 0) {
                 alert('Tambahkan minimal 1 barang!');
@@ -1282,6 +1351,7 @@
                 nama_pengambil: document.getElementById('nama_pengambil').value,
                 jabatan_unit: document.getElementById('jabatan_unit').value,
                 keterangan: document.getElementById('keterangan').value,
+                tanda_tangan: signature,
                 items: items
             };
 
@@ -1294,10 +1364,12 @@
                 const result = await res.json();
 
                 if (result.success) {
+                    downloadReceiptPdf(payload);
                     alert('Transaksi Penerimaan Berhasil Disimpan!');
                     document.getElementById('form-pengambilan').reset();
                     document.getElementById('tanggal_pengambilan').valueAsDate = new Date();
                     document.getElementById('table-items-body').innerHTML = '';
+                    clearSignature('bk-signature');
                     
                     await loadMasterBarang();
                     await loadTransaksiData();
@@ -1384,6 +1456,7 @@
                     <td class="p-3">${barangList}</td>
                     <td class="p-3 text-slate-500">${item.keterangan || '-'}</td>
                     <td class="p-3 text-center">
+                        <button onclick="downloadReceiptPdfByCode('${item.kode_transaksi}')" class="text-rose-600 hover:text-rose-800 p-1" title="Unduh bukti penerimaan PDF"><i data-lucide="file-down" class="w-4 h-4"></i></button>
                         <button onclick="editTransaksi('${item.kode_transaksi}')" class="text-blue-600 hover:text-blue-800 p-1" title="Edit Transaksi">
                             <i data-lucide="edit" class="w-4 h-4"></i>
                         </button>
@@ -1735,11 +1808,9 @@
                 document.getElementById('tab-akun').className = activeStyle;
                 if (sessionStorage.getItem('sipintar_role') === 'admin') loadAccounts();
             }
+            document.getElementById('tab-akun').classList.toggle('hidden', !['admin', 'pegawai'].includes(sessionStorage.getItem('sipintar_role')));
         }
     </script>
-    <footer class="max-w-7xl mx-auto px-4 py-6 text-center text-xs text-slate-500">
-        <p>&copy; 2026 MAN 1 Palembang</p>
-        <p class="mt-1">dikembangkan oleh muthic</p>
-    </footer>
+    <footer class="py-5 text-center text-xs leading-5 text-slate-500">© 2026 MAN 1 Palembang<br><span class="font-medium">dikembangkan oleh informuth</span></footer>
 </body>
 </html>
