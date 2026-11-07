@@ -138,10 +138,10 @@ CREATE TABLE `users` (
 INSERT INTO `users` (`id`, `username`, `password`, `nama_lengkap`, `role`) VALUES
 (1, 'petugas2', 'petugas2', 'Administrator TU', 'pegawai'),
 (2, 'petugas1', 'petugas123', 'Petugas Inventaris', 'pegawai'),
-(5, 'admin', 'admin', 'Pegawai MAN 1', 'admin'),
+(5, 'admin', 'admin', 'Pegawai Kemenag Kota Palembang', 'admin'),
 (7, 'p3', 'p3', 'p', 'pegawai'),
 (8, 'petugas3', 'petugas3', 'aaaa', 'pegawai'),
-(9, 'pemantau1', 'pemantau123', 'Pemantau Stok MAN 1', 'pemantau');
+(9, 'pemantau1', 'pemantau123', 'Pemantau Kemenag Kota Palembang', 'pemantau');
 
 --
 -- Indexes for dumped tables
